@@ -1,0 +1,48 @@
+SCADA PTAR BELLAVISTA · APP MÓVIL + SERVIDOR DE SINCRONIZACIÓN
+================================================================
+
+ARCHIVOS (deben quedar juntos, en la misma carpeta)
+  app.py                  servidor (Flask): recibe y reparte los registros y sirve la app móvil
+  index.html              la app móvil
+  sw.js, manifest.webmanifest, icon-192.png, icon-512.png   para instalarla en el celular y abrir sin internet
+  requirements.txt        dependencias
+
+1) PROBAR EN EL COMPUTADOR
+     pip install -r requirements.txt
+     python app.py
+   Abrir http://127.0.0.1:8000  (en el celular, con el mismo WiFi: http://IP-DEL-PC:8000)
+
+2) PUBLICAR EN RENDER
+   - Suba estos archivos a la raíz del repositorio que usa su servicio de Render
+     (reemplazan el index.html y el servidor actuales).
+   - Build Command:   pip install -r requirements.txt
+   - Start Command:   gunicorn app:app --workers 1 --threads 4 --timeout 120
+     (revise que su servicio actual use "app:app"; si el archivo del servidor se llamaba distinto, cambie el comando o renombre este)
+   - Al abrir https://SU-SERVICIO.onrender.com en el celular: menú del navegador > "Agregar a pantalla de inicio".
+
+3) PROGRAMA DE ESCRITORIO
+   Menú Sincronización:
+   - Servidor: la misma dirección de Render.
+   - "Sincronizar"  -> envía al servidor lo que se hizo en el PC.
+   - "Descargar"    -> trae lo que se guardó en el celular (aforos, pH, horómetro, etc.).
+   El celular, en cambio, sincroniza SOLO (al guardar, al volver la señal y cada 90 s).
+
+4) DATOS: LO MÁS IMPORTANTE
+   El plan gratuito de Render tiene disco temporal: un archivo SQLite se borra cuando el servicio se reinicia
+   o se duerme (a los ~15 min sin uso). Para que el servidor conserve los datos:
+     a) Recomendado: una base PostgreSQL gratuita externa (Neon, Supabase u otra). Cree la base, copie su
+        "connection string" y póngala en Render como variable de entorno DATABASE_URL. Quite el '#' de
+        psycopg2-binary en requirements.txt.
+     b) O un disco persistente de Render (de pago) y la variable DATA_DIR=/ruta/del/disco.
+   Mientras tanto no se pierde nada importante: el celular y el PC conservan su copia, y si el servidor
+   se reinicia el celular lo detecta y vuelve a enviar todo lo que tiene.
+
+5) SEGURIDAD
+   El servidor no pide contraseña: quien conozca la dirección puede leer y enviar registros. Use una
+   dirección que no sea pública y, si va a producción, pida agregar una clave de acceso.
+
+6) NOTAS
+   - Las fotos de evidencias se guardan en el celular y en el servidor; el programa de escritorio recibe el
+     aviso (novedad "Evidencia") pero no la imagen.
+   - "/api/datos" (el envío rápido antiguo del escritorio) se recibe pero NO se reparte a otros dispositivos,
+     para que no aparezcan registros duplicados.

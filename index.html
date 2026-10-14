@@ -1,0 +1,1406 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0f2d59">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>PTAR Bellavista · SCADA móvil</title>
+<style>
+:root{
+  --navy:#0f2d59;--navy2:#1c4585;--blue:#2b6cb0;--blue-bg:#e8f1fb;
+  --green:#2f855a;--green2:#16a34a;--green-bg:#e6f4ec;
+  --amber:#a8660a;--amber-bg:#fdf1d6;--red:#c53030;--red-bg:#fdeaea;
+  --bg:#eef1f6;--card:#fff;--text:#16202e;--muted:#566579;--line:#d7dde7;--r:16px;
+  --shadow:0 1px 2px rgba(15,45,89,.07),0 6px 16px rgba(15,45,89,.08);
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--text);
+  font:15px/1.45 "Segoe UI",system-ui,-apple-system,Roboto,"Helvetica Neue",Arial,sans-serif;
+  -webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;text-rendering:optimizeLegibility;
+  padding-bottom:calc(84px + env(safe-area-inset-bottom))}
+h3{margin:0 0 10px;font-size:15px;font-weight:800;color:var(--navy)}
+small,.muted{color:var(--muted)}
+button{font-family:inherit}
+
+/* ---- cabecera */
+.top{position:sticky;top:0;z-index:30;background:linear-gradient(135deg,var(--navy),var(--navy2));color:#fff;
+  padding:10px 14px;padding-top:calc(10px + env(safe-area-inset-top));display:flex;align-items:center;justify-content:space-between;gap:10px}
+.brand{display:flex;align-items:center;gap:10px;min-width:0}
+.brand svg{width:40px;height:40px;flex:none}
+.brand b{display:block;font-size:16px;letter-spacing:.4px;font-weight:800;line-height:1.1}
+.brand small{display:block;font-size:11px;color:#c9d8ee;font-weight:600}
+.badge{border:0;border-radius:999px;padding:8px 12px;font-size:12px;font-weight:800;color:#fff;background:rgba(255,255,255,.17);
+  display:flex;align-items:center;gap:7px;cursor:pointer;white-space:nowrap}
+.badge i{width:9px;height:9px;border-radius:50%;background:#94a3b8;display:inline-block}
+.badge.ok i{background:#4ade80}.badge.pend i{background:#fbbf24}.badge.off i{background:#f87171}
+.badge.busy i{background:#60a5fa;animation:pulso 1s infinite}
+@keyframes pulso{50%{opacity:.25}}
+.turnobar{background:#fff;border-bottom:1px solid var(--line);padding:9px 14px;font-size:13.5px;display:flex;align-items:center;
+  justify-content:space-between;gap:8px;cursor:pointer}
+.turnobar b{font-weight:800}
+.turnobar.warn{background:var(--amber-bg);color:var(--amber)}
+.turnobar .go{font-weight:800;color:var(--blue);white-space:nowrap}
+
+/* ---- pantallas y tarjetas */
+.view .card{scroll-margin-top:122px}
+.view{display:none;padding:12px 12px 0;max-width:720px;margin:0 auto}
+.view.active{display:block}
+.card{background:var(--card);border-radius:var(--r);box-shadow:var(--shadow);margin-bottom:12px}
+.pad{padding:14px}
+.card-h{width:100%;display:flex;align-items:center;gap:10px;padding:14px;border:0;background:#fff;text-align:left;font-size:inherit;cursor:pointer;color:var(--text)}
+.card-h .step{width:30px;height:30px;border-radius:50%;background:var(--navy);color:#fff;display:grid;place-items:center;font-weight:800;font-size:14px;flex:none}
+.card-h .step.opt{background:#8a99ad}
+.card-h .ttl{flex:1;font-weight:800;font-size:16px;line-height:1.2}
+.card-h .ttl small{display:block;font-weight:600;font-size:12px;margin-top:2px}
+.chev{width:12px;height:12px;border-right:2.5px solid #8a99ad;border-bottom:2.5px solid #8a99ad;transform:rotate(45deg);margin:0 4px 3px 2px;transition:transform .2s;flex:none}
+.card-h{border-radius:var(--r)}
+.card.open .card-h{border-radius:var(--r) var(--r) 0 0}
+.card.open .chev{transform:rotate(-135deg);margin-bottom:-3px}
+.card-b{display:none;padding:2px 14px 16px;border-top:1px solid var(--line)}
+.card.open .card-b{display:block}
+.chip{font-size:11.5px;font-weight:800;padding:4px 10px;border-radius:999px;background:#e2e8f0;color:#475569;white-space:nowrap}
+.chip.ok{background:var(--green-bg);color:var(--green)}.chip.warn{background:var(--amber-bg);color:var(--amber)}
+.chip.bad{background:var(--red-bg);color:var(--red)}.chip.info{background:var(--blue-bg);color:var(--blue)}
+.intro{background:var(--blue-bg);color:#1f4b7a;border-radius:12px;padding:10px 12px;font-size:13.5px;margin-bottom:12px}
+.intro b{font-weight:800}
+
+/* ---- formularios */
+.field{margin-top:13px}
+.field label{display:block;font-weight:700;font-size:13px;margin-bottom:5px;color:#26364d}
+.req{color:var(--red);font-weight:800}
+.opt-tag{color:var(--muted);font-weight:600;font-size:12px}
+.field input,.field select,.field textarea{width:100%;min-height:50px;padding:11px 12px;border:1.5px solid var(--line);border-radius:12px;
+  font:inherit;font-size:16px;background:#fff;color:var(--text);appearance:none;-webkit-appearance:none}
+.field select{background-image:linear-gradient(45deg,transparent 50%,#64748b 50%),linear-gradient(135deg,#64748b 50%,transparent 50%);
+  background-position:calc(100% - 20px) 21px,calc(100% - 14px) 21px;background-size:6px 6px;background-repeat:no-repeat;padding-right:36px}
+.field textarea{min-height:88px;resize:vertical}
+.field input:focus,.field select:focus,.field textarea:focus{outline:0;border-color:var(--blue);box-shadow:0 0 0 3px rgba(43,108,176,.18)}
+.field .err{display:none;color:var(--red);font-size:13px;font-weight:700;margin-top:5px}
+.field.invalid input,.field.invalid select,.field.invalid textarea{border-color:var(--red);background:#fff6f6}
+.field.invalid .err{display:block}
+.row{display:flex;gap:8px;align-items:stretch}
+.row>input{flex:1;min-width:0}
+.mini{flex:none;min-width:66px;min-height:50px;border:1.5px solid var(--navy);background:#fff;color:var(--navy);border-radius:12px;font-weight:800;font-size:13px;padding:0 10px;cursor:pointer}
+.mini.sm{min-height:36px;min-width:52px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.hint{font-size:12.5px;color:var(--muted);margin-top:5px}
+.sep{height:1px;background:var(--line);margin:16px 0 2px}
+.sub{font-weight:800;color:var(--navy);margin:16px 0 0;font-size:14px}
+
+.btn{display:block;width:100%;min-height:54px;border:0;border-radius:14px;font-size:16px;font-weight:800;cursor:pointer;margin-top:18px}
+.btn.primary{background:var(--navy);color:#fff}
+.btn.success{background:var(--green2);color:#fff}
+.btn.ghost{background:#fff;color:var(--navy);border:1.5px solid var(--navy)}
+.btn.danger{background:#fff;color:var(--red);border:1.5px solid var(--red)}
+.btn:active{transform:scale(.99)}
+.btn[disabled]{opacity:.55}
+.btn.sm{min-height:44px;font-size:14px;margin-top:10px}
+
+/* ---- resultados */
+.resbox{background:var(--navy);color:#fff;border-radius:14px;padding:14px 16px;margin-top:16px}
+.resbox small{color:#b9cae6;display:block}
+.resbox .big{font-size:38px;font-weight:800;line-height:1.1;margin:2px 0 6px}
+.resbox .st{display:inline-block;border-radius:999px;padding:4px 10px;font-size:12px;font-weight:800;background:#ed8936;color:#fff}
+.resbox .st.ok{background:var(--green2)}
+.stickyres{position:sticky;top:calc(70px + env(safe-area-inset-top));z-index:6;background:var(--navy);color:#fff;border-radius:12px;padding:10px 14px;margin-top:12px;display:flex;justify-content:space-between;align-items:center;font-weight:800;box-shadow:0 4px 12px rgba(15,45,89,.25)}
+.stickyres small{color:#b9cae6;font-weight:700}
+.qpar{font-weight:800;color:var(--blue);font-size:14px;margin-top:5px}
+.aforo{background:#f7f9fc;border:1px solid var(--line);border-radius:14px;padding:4px 12px 12px;margin-top:12px}
+.aforo .t{font-weight:800;color:var(--navy);margin-top:10px;font-size:14px;display:flex;justify-content:space-between;align-items:center}
+.phbox{background:#f7f9fc;border:1px solid var(--line);border-radius:14px;padding:4px 12px 12px;margin-top:12px}
+.phscale{position:relative;margin-top:12px;padding-top:2px}
+.phscale .z{display:flex;height:12px;border-radius:8px;overflow:hidden}
+.phscale .z i{display:block;height:100%}
+.phscale .mk{position:absolute;top:-4px;width:5px;height:20px;border-radius:3px;background:var(--navy);transform:translateX(-50%);display:none;box-shadow:0 0 0 2px #fff}
+.phscale .lbl{display:flex;justify-content:space-between;font-size:10.5px;color:var(--muted);margin-top:3px}
+.bar{height:11px;border-radius:7px;background:#e2e8f0;overflow:hidden}
+.bar>i{display:block;height:100%;background:var(--blue);border-radius:7px;transition:width .3s}
+.info{background:#f7f9fc;border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin-top:12px;font-size:13.5px}
+.info b{font-weight:800}
+
+/* ---- inicio */
+.kpis{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
+.kpi{background:#fff;border-radius:14px;padding:12px 13px;box-shadow:var(--shadow);border-left:5px solid #cbd5e1;min-width:0}
+.kpi small{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.4px;display:block}
+.kpi b{display:block;font-size:25px;font-weight:800;margin:2px 0 1px;line-height:1.15}
+.kpi span{font-size:12px;color:var(--muted)}
+.kpi.ok{border-left-color:var(--green)}.kpi.warn{border-left-color:#e0a21b}.kpi.bad{border-left-color:var(--red)}.kpi.info{border-left-color:var(--blue)}
+.check{display:flex;align-items:center;gap:11px;padding:10px 0;border-bottom:1px solid #eef1f6}
+.check:last-child{border-bottom:0}
+.check>div{flex:1;min-width:0}
+.check b{display:block;font-weight:800;font-size:14.5px}
+.check small{font-size:12.5px}
+.dot{width:26px;height:26px;border-radius:50%;display:grid;place-items:center;font-size:14px;font-weight:800;background:#e2e8f0;color:#64748b;flex:none}
+.dot.ok{background:var(--green);color:#fff}.dot.no{background:var(--red-bg);color:var(--red)}
+.alerta{display:flex;gap:10px;border-radius:12px;padding:10px 12px;margin-bottom:8px;font-size:13.5px;font-weight:600}
+.alerta.bad{background:var(--red-bg);color:#8f2020}.alerta.warn{background:var(--amber-bg);color:#7a4a07}.alerta.info{background:var(--blue-bg);color:#1f4b7a}
+.chart svg{width:100%;height:auto;display:block}
+.chart .vacio{padding:22px 0;text-align:center;color:var(--muted);font-size:13px}
+.leyenda{display:flex;gap:12px;flex-wrap:wrap;font-size:11.5px;color:var(--muted);margin-top:6px}
+.leyenda i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:4px;vertical-align:-1px}
+.rec{display:flex;gap:10px;padding:9px 0;border-bottom:1px solid #eef1f6;font-size:13.5px}
+.rec:last-child{border-bottom:0}
+.rec .s{width:9px;height:9px;border-radius:50%;background:#fbbf24;margin-top:6px;flex:none}
+.rec .s.ok{background:#4ade80}
+.rec small{display:block}
+
+/* ---- bitácora */
+.tools{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.tools input[type=month]{min-height:46px;border:1.5px solid var(--line);border-radius:12px;padding:0 12px;font:inherit;font-size:16px;background:#fff}
+.tw{overflow:auto;border-radius:12px;border:1px solid var(--line);background:#fff;margin-top:12px;max-height:62vh}
+table.bit{border-collapse:separate;border-spacing:0;width:100%;min-width:820px;font-size:12.5px}
+table.bit th{position:sticky;top:0;background:var(--navy);color:#fff;font-weight:800;padding:9px 7px;text-align:center;z-index:2;white-space:nowrap}
+table.bit td{padding:8px 7px;border-bottom:1px solid #edf1f6;text-align:center;white-space:nowrap}
+table.bit td.l{text-align:left;white-space:normal;min-width:105px;max-width:150px}
+table.bit td.o{text-align:left;white-space:normal;min-width:230px;max-width:300px}
+table.bit tr:nth-child(even) td{background:#f8fafc}
+table.bit td:first-child,table.bit th:first-child{position:sticky;left:0;z-index:1;font-weight:800;background:#fff}
+table.bit th:first-child{background:var(--navy);z-index:3}
+table.bit tr:nth-child(even) td:first-child{background:#f8fafc}
+table.bit tr.vacio td{color:#a8b3c2}
+table.bit tr.futuro td{color:#cbd3de}
+table.bit tr.falta td:first-child{box-shadow:inset 4px 0 0 #e0a21b}
+table.bit tr.ok td:first-child{box-shadow:inset 4px 0 0 var(--green)}
+table.bit td.bad{color:var(--red);font-weight:800}
+.resumen{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}
+.resumen div{background:#fff;border-radius:12px;padding:10px 12px;box-shadow:var(--shadow)}
+.resumen small{display:block;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.3px}
+.resumen b{font-size:18px;font-weight:800}
+.prt{display:none}
+#printHead,#printFoot{display:none}
+
+/* ---- sincronización y misc */
+.kv{display:flex;justify-content:space-between;gap:10px;padding:8px 0;border-bottom:1px solid #eef1f6;font-size:14px}
+.kv:last-child{border-bottom:0}.kv span:last-child{font-weight:700;text-align:right;word-break:break-all}
+.prev{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.prev div{position:relative;width:84px;height:84px;border-radius:12px;overflow:hidden;border:1px solid var(--line)}
+.prev img{width:100%;height:100%;object-fit:cover;display:block}
+.prev button{position:absolute;top:3px;right:3px;width:24px;height:24px;border-radius:50%;border:0;background:rgba(0,0,0,.65);color:#fff;font-weight:800;line-height:1}
+
+/* ---- navegación inferior y aviso */
+.bottom{position:fixed;left:0;right:0;bottom:0;z-index:40;background:#fff;border-top:1px solid var(--line);
+  display:grid;grid-template-columns:repeat(5,1fr);padding:6px 4px calc(6px + env(safe-area-inset-bottom));box-shadow:0 -4px 14px rgba(15,45,89,.07)}
+.bottom button{border:0;background:none;font-size:11.5px;font-weight:700;color:var(--muted);display:flex;flex-direction:column;align-items:center;gap:3px;padding:5px 0;position:relative;cursor:pointer}
+.bottom button svg{width:25px;height:25px;stroke:currentColor;fill:none;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+.bottom button.active{color:var(--navy)}
+.bottom button.active::before{content:"";position:absolute;top:-7px;width:34px;height:3px;border-radius:3px;background:var(--navy)}
+.bottom .cnt{position:absolute;top:0;left:56%;min-width:18px;height:18px;border-radius:9px;background:var(--red);color:#fff;font-size:10.5px;font-weight:800;display:none;place-items:center;padding:0 5px}
+#toast{position:fixed;left:50%;bottom:calc(96px + env(safe-area-inset-bottom));transform:translate(-50%,20px);background:#16202e;color:#fff;border-radius:14px;
+  padding:12px 16px;font-size:14px;font-weight:700;max-width:92%;text-align:center;opacity:0;pointer-events:none;transition:.25s;z-index:60}
+#toast.show{opacity:1;transform:translate(-50%,0)}
+#toast.bad{background:var(--red)}
+#toast.ok{background:var(--green)}
+
+@media print{
+  @page{size:A4 landscape;margin:8mm}
+  body{background:#fff;padding:0;font-size:10px}
+  .top,.turnobar,.bottom,#toast,.view:not(#v-bitacora),.noprint{display:none!important}
+  #v-bitacora{display:block!important;padding:0;max-width:none}
+  #printHead,#printFoot{display:block}
+  #printHead h2{margin:0;font-size:14px;color:#0f2d59}
+  #printHead p{margin:1px 0 4px;font-size:10px}
+  .tw{border:0;max-height:none;overflow:visible;margin-top:2px}
+  .scr{display:none}.prt{display:inline}
+  table.bit{min-width:0;font-size:8.5px;line-height:1.15}
+  table.bit th{position:static;background:#0f2d59!important;color:#fff!important;-webkit-print-color-adjust:exact;print-color-adjust:exact;padding:3px 2px}
+  table.bit td{padding:1.2px 3px;white-space:normal}
+  table.bit td.l{min-width:0;max-width:none}
+  table.bit td.o{min-width:0;max-width:none;font-size:8px}
+  table.bit td:first-child,table.bit th:first-child{position:static}
+  table.bit tr:nth-child(even) td{background:#f3f5f9!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  .resumen{grid-template-columns:repeat(7,1fr);gap:3px;margin-top:5px}
+  .resumen div{box-shadow:none;border:1px solid #cbd5e1;padding:2px 5px;border-radius:5px}
+  .resumen small{font-size:7px}
+  .resumen b{font-size:10.5px}
+  #printFoot{display:flex;gap:40px;margin-top:16px}
+  #printFoot div{flex:1;border-top:1.5px solid #000;padding-top:3px;text-align:center;font-size:9.5px}
+}
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="brand">
+    <svg viewBox="0 0 48 48" aria-hidden="true"><rect width="48" height="48" rx="12" fill="#fff" fill-opacity=".16"/>
+      <path d="M24 6.5c-.6.8-1.5 2-2.6 3.6C18.2 14.800 13.500 21.400 13.500 27.200a10.500 10.500 0 0021 0c0-5.800-4.700-12.400-7.900-17.100-1.100-1.600-2-2.800-2.600-3.600z" fill="#fff"/>
+      <path d="M12 38.500c3.800-2.400 6.500-2.400 10 0s6.200 2.400 10 0 3.400-1.800 4-1.400" fill="none" stroke="#9cc4f0" stroke-width="2.600" stroke-linecap="round"/></svg>
+    <div><b>PTAR BELLAVISTA</b><small>SCADA móvil</small></div>
+  </div>
+  <button class="badge" id="syncBadge" onclick="go('sync')"><i></i><span id="syncTxt">Sin sincronizar</span></button>
+</header>
+<div class="turnobar warn" id="turnoBar" onclick="irA('c-turno')"><span id="turnoTxt">Sin turno</span><span class="go">Abrir ›</span></div>
+
+<main>
+<!-- ============================ INICIO ============================ -->
+<section id="v-inicio" class="view active">
+  <div class="card pad" id="hoyCard"></div>
+  <div id="alertas"></div>
+  <div class="kpis" id="kpis"></div>
+  <div class="card pad"><h3>Caudal diario · últimos 7 días</h3><div class="chart" id="chCaudal"></div>
+    <div class="leyenda"><span><i style="background:#22c55e"></i>Bajo</span><span><i style="background:#eab308"></i>Medio</span><span><i style="background:#ef4444"></i>Alto</span></div></div>
+  <div class="card pad"><h3>pH entrada vs salida · 7 días</h3><div class="chart" id="chPh"></div>
+    <div class="leyenda"><span><i style="background:#2b6cb0"></i>Entrada</span><span><i style="background:#7c3aed"></i>Salida</span><span><i style="background:#bbf7d0"></i>Zona segura 6.5 – 8.5</span></div></div>
+  <div class="card pad"><h3>Consumo de coagulante · 7 días (L)</h3><div class="chart" id="chQuim"></div></div>
+  <div class="card pad"><h3>Actividad reciente</h3><div id="recientes"></div></div>
+</section>
+
+<!-- ============================ REGISTRO (obligatorio) ============================ -->
+<section id="v-registro" class="view">
+  <div class="intro"><b>Registro diario.</b> Complete cada tarjeta y toque <b>Guardar</b> al final. Los campos con <span class="req">*</span> son obligatorios: si falta alguno, no se guarda.</div>
+
+  <article class="card open" id="c-turno">
+    <button class="card-h" onclick="toggleCard('c-turno')"><span class="step">1</span><span class="ttl">Turno<small>Operador · ingreso · salida</small></span><span class="chip" id="st-turno">Falta</span><span class="chev"></span></button>
+    <div class="card-b">
+      <div class="field"><label for="t-nombre">Nombre del operador <span class="req">*</span></label><input id="t-nombre" type="text" autocomplete="name" placeholder="Nombre y apellido"><div class="err"></div></div>
+      <div class="field"><label for="t-ingreso">Fecha y hora de ingreso <span class="req">*</span></label>
+        <div class="row"><input id="t-ingreso" type="datetime-local"><button class="mini" type="button" onclick="setNow('t-ingreso');autoSalida(true)">Ahora</button></div><div class="err"></div></div>
+      <div class="field"><label for="t-salida">Fecha y hora de salida <span class="req">*</span></label>
+        <div class="row"><input id="t-salida" type="datetime-local"><button class="mini" type="button" onclick="autoSalida(true)">+8 h</button></div><div class="err"></div>
+        <div class="hint">Si el turno termina antes o después, corrija la hora y guarde de nuevo.</div></div>
+      <button class="btn primary" onclick="guardarTurno()">Guardar turno</button>
+    </div>
+  </article>
+
+  <article class="card" id="c-horo">
+    <button class="card-h" onclick="toggleCard('c-horo')"><span class="step">2</span><span class="ttl">Horómetro<small>Lectura de horas del equipo</small></span><span class="chip" id="st-horo">Falta</span><span class="chev"></span></button>
+    <div class="card-b">
+      <div class="field"><label for="h-equipo">Equipo <span class="req">*</span></label>
+        <select id="h-equipo"><option>Bomba</option><option>Soplante</option><option>Bomba dosificadora</option></select><div class="err"></div></div>
+      <div class="field"><label for="h-lectura">Lectura del horómetro (h) <span class="req">*</span></label><input id="h-lectura" type="number" inputmode="decimal" step="any" placeholder="Ej: 11384.4" oninput="infoHorometro()"><div class="err"></div></div>
+      <div class="field"><label for="h-dt">Fecha y hora de la lectura <span class="req">*</span></label>
+        <div class="row"><input id="h-dt" type="datetime-local"><button class="mini" type="button" onclick="setNow('h-dt')">Ahora</button></div><div class="err"></div></div>
+      <div class="info" id="h-info"></div>
+      <div class="field"><label for="h-obs">Observaciones <span class="opt-tag">(opcional)</span></label><input id="h-obs" type="text"></div>
+      <button class="btn primary" onclick="guardarHorometro()">Guardar horómetro</button>
+    </div>
+  </article>
+
+  <article class="card" id="c-aforo">
+    <button class="card-h" onclick="toggleCard('c-aforo')"><span class="step">3</span><span class="ttl">Aforos volumétricos<small>3 mediciones con recipiente de 8 L</small></span><span class="chip" id="st-aforo">Falta</span><span class="chev"></span></button>
+    <div class="card-b">
+      <div class="hint" style="margin-top:10px">Mida cuántos <b>segundos</b> tarda en llenarse el recipiente de 8 L. Caudal = 8 L ÷ segundos. Toque <b>Ahora</b> al terminar cada aforo.</div>
+      <div class="stickyres"><span>Caudal: <span id="r-mini-q">— L/s</span></span><small id="r-mini-s">0 de 3 aforos</small></div>
+      <div class="aforo"><div class="t"><span>Aforo 1</span><span class="qpar" id="a-q1">— L/s</span></div>
+        <div class="field"><label for="a-s1">Segundos (s) <span class="req">*</span></label><input id="a-s1" type="number" inputmode="decimal" step="any" placeholder="Ej: 25.30" oninput="calcAforos(1)"><div class="err"></div></div>
+        <div class="field"><label for="a-dt1">Hora del aforo <span class="req">*</span></label><div class="row"><input id="a-dt1" type="datetime-local" oninput="draftAforos()"><button class="mini" type="button" onclick="setNow('a-dt1');draftAforos()">Ahora</button></div><div class="err"></div></div></div>
+      <div class="aforo"><div class="t"><span>Aforo 2</span><span class="qpar" id="a-q2">— L/s</span></div>
+        <div class="field"><label for="a-s2">Segundos (s) <span class="req">*</span></label><input id="a-s2" type="number" inputmode="decimal" step="any" placeholder="Ej: 25.10" oninput="calcAforos(2)"><div class="err"></div></div>
+        <div class="field"><label for="a-dt2">Hora del aforo <span class="req">*</span></label><div class="row"><input id="a-dt2" type="datetime-local" oninput="draftAforos()"><button class="mini" type="button" onclick="setNow('a-dt2');draftAforos()">Ahora</button></div><div class="err"></div></div></div>
+      <div class="aforo"><div class="t"><span>Aforo 3</span><span class="qpar" id="a-q3">— L/s</span></div>
+        <div class="field"><label for="a-s3">Segundos (s) <span class="req">*</span></label><input id="a-s3" type="number" inputmode="decimal" step="any" placeholder="Ej: 25.60" oninput="calcAforos(3)"><div class="err"></div></div>
+        <div class="field"><label for="a-dt3">Hora del aforo <span class="req">*</span></label><div class="row"><input id="a-dt3" type="datetime-local" oninput="draftAforos()"><button class="mini" type="button" onclick="setNow('a-dt3');draftAforos()">Ahora</button></div><div class="err"></div></div></div>
+      <div class="resbox">
+        <small id="r-prom">Tiempo promedio: — s</small>
+        <small id="r-calc">Cálculo: 8 L ÷ — s = — L/s</small>
+        <small style="margin-top:8px;font-weight:800">RESULTADO FINAL · CAUDAL</small>
+        <div class="big" id="r-caudal">— L/s</div>
+        <span class="st" id="r-estado">Faltan 3 aforos</span>
+      </div>
+      <button class="btn primary" onclick="guardarAforos()">Guardar aforos</button>
+    </div>
+  </article>
+
+  <article class="card" id="c-ph">
+    <button class="card-h" onclick="toggleCard('c-ph')"><span class="step">4</span><span class="ttl">pH<small>Entrada y salida · rango seguro 6.5 – 8.5</small></span><span class="chip" id="st-ph">Falta</span><span class="chev"></span></button>
+    <div class="card-b">
+      <div class="phbox"><div class="sub" style="margin-top:8px">pH de ENTRADA</div>
+        <div class="field"><label for="ph-in">Valor de pH <span class="req">*</span></label><input id="ph-in" type="number" inputmode="decimal" step="any" placeholder="Ej: 7.2" oninput="phVisual('in')"><div class="err"></div></div>
+        <div class="field"><label for="ph-in-dt">Fecha y hora <span class="req">*</span></label><div class="row"><input id="ph-in-dt" type="datetime-local"><button class="mini" type="button" onclick="setNow('ph-in-dt')">Ahora</button></div><div class="err"></div></div>
+        <div class="phscale" id="sc-in"><div class="z"><i style="flex:6.5;background:#fecaca"></i><i style="flex:2;background:#bbf7d0"></i><i style="flex:5.5;background:#fecaca"></i></div><div class="mk"></div><div class="lbl"><span>0</span><span>6.5</span><span>8.5</span><span>14</span></div></div>
+        <div style="margin-top:8px"><span class="chip" id="ph-in-chip">Sin valor</span></div></div>
+      <div class="phbox"><div class="sub" style="margin-top:8px">pH de SALIDA</div>
+        <div class="field"><label for="ph-out">Valor de pH <span class="req">*</span></label><input id="ph-out" type="number" inputmode="decimal" step="any" placeholder="Ej: 7.0" oninput="phVisual('out')"><div class="err"></div></div>
+        <div class="field"><label for="ph-out-dt">Fecha y hora <span class="req">*</span></label><div class="row"><input id="ph-out-dt" type="datetime-local"><button class="mini" type="button" onclick="setNow('ph-out-dt')">Ahora</button></div><div class="err"></div></div>
+        <div class="phscale" id="sc-out"><div class="z"><i style="flex:6.5;background:#fecaca"></i><i style="flex:2;background:#bbf7d0"></i><i style="flex:5.5;background:#fecaca"></i></div><div class="mk"></div><div class="lbl"><span>0</span><span>6.5</span><span>8.5</span><span>14</span></div></div>
+        <div style="margin-top:8px"><span class="chip" id="ph-out-chip">Sin valor</span></div></div>
+      <div class="field"><label for="ph-temp">Temperatura °C <span class="opt-tag">(opcional)</span></label><input id="ph-temp" type="number" inputmode="decimal" step="any" placeholder="Ej: 22.5"><div class="err"></div></div>
+      <button class="btn primary" onclick="guardarPh()">Guardar pH</button>
+    </div>
+  </article>
+
+  <article class="card" id="c-dosis">
+    <button class="card-h" onclick="toggleCard('c-dosis')"><span class="step">5</span><span class="ttl">Dosificación<small>Tanque Ø36 × 66 cm · 1 cm = 1.0179 L</small></span><span class="chip info" id="st-dosis">Recomendado</span><span class="chev"></span></button>
+    <div class="card-b">
+      <div class="field"><label for="d-prod">Producto <span class="req">*</span></label><select id="d-prod"><option>Coagulante</option><option>Floculante</option><option>Cloro</option></select><div class="err"></div></div>
+      <div class="grid2">
+        <div class="field"><label for="d-ini">Nivel inicial (cm) <span class="req">*</span></label><input id="d-ini" type="number" inputmode="decimal" step="any" placeholder="0 – 66" oninput="calcDosis()"><div class="err"></div></div>
+        <div class="field"><label for="d-fin">Nivel final (cm) <span class="req">*</span></label><input id="d-fin" type="number" inputmode="decimal" step="any" placeholder="0 – 66" oninput="calcDosis()"><div class="err"></div></div>
+      </div>
+      <div class="field"><label for="d-dt">Fecha y hora <span class="req">*</span></label><div class="row"><input id="d-dt" type="datetime-local"><button class="mini" type="button" onclick="setNow('d-dt')">Ahora</button></div><div class="err"></div></div>
+      <div class="info" id="d-res">Escriba los niveles para calcular el consumo.</div>
+      <div class="field"><label for="d-obs">Observaciones <span class="opt-tag">(opcional)</span></label><input id="d-obs" type="text"></div>
+      <button class="btn primary" onclick="guardarDosis()">Guardar dosificación</button>
+    </div>
+  </article>
+</section>
+
+<!-- ============================ OTROS (opcional) ============================ -->
+<section id="v-otros" class="view">
+  <div class="intro"><b>Registros opcionales.</b> No son obligatorios para la bitácora: úselos cuando haga falta.</div>
+
+  <article class="card open" id="c-lavado">
+    <button class="card-h" onclick="toggleCard('c-lavado')"><span class="step opt">A</span><span class="ttl">Lavado de unidades</span><span class="chip">Opcional</span><span class="chev"></span></button>
+    <div class="card-b">
+      <div class="field"><label for="l-unidad">Unidad lavada <span class="req">*</span></label>
+        <select id="l-unidad"><option>Tanque DAF Azul</option><option>Homogeneizador 1</option><option>Homogeneizador 2</option><option>Trampa de Grasas</option><option>Lecho de Secado</option><option>Tanque Cónico Piso</option></select><div class="err"></div></div>
+      <div class="field"><label for="l-dt">Fecha y hora</label><div class="row"><input id="l-dt" type="datetime-local"><button class="mini" type="button" onclick="setNow('l-dt')">Ahora</button></div></div>
+      <div class="grid2"><div class="field"><label for="l-estado">Estado</label><select id="l-estado"><option>Realizado</option><option>Parcial</option><option>Pendiente</option></select></div>
+        <div class="field"><label for="l-tiempo">Duración (min)</label><input id="l-tiempo" type="number" inputmode="numeric" step="any"></div></div>
+      <div class="field"><label for="l-notas">Notas</label><textarea id="l-notas"></textarea></div>
+      <button class="btn primary" onclick="guardarLavado()">Guardar lavado</button>
+    </div>
+  </article>
+
+  <article class="card" id="c-mant">
+    <button class="card-h" onclick="toggleCard('c-mant')"><span class="step opt">B</span><span class="ttl">Mantenimiento</span><span class="chip">Opcional</span><span class="chev"></span></button>
+    <div class="card-b">
+      <div class="grid2"><div class="field"><label for="m-equipo">Equipo</label><select id="m-equipo"><option>Bomba</option><option>Soplante</option><option>DAF</option><option>Bomba dosificadora</option><option>Otro</option></select></div>
+        <div class="field"><label for="m-tipo">Tipo</label><select id="m-tipo"><option>Preventivo</option><option>Correctivo</option><option>Predictivo</option></select></div></div>
+      <div class="grid2"><div class="field"><label for="m-prio">Prioridad</label><select id="m-prio"><option>Media</option><option>Alta</option><option>Baja</option></select></div>
+        <div class="field"><label for="m-estado">Estado</label><select id="m-estado"><option>Realizado</option><option>Programado</option><option>Pendiente</option></select></div></div>
+      <div class="field"><label for="m-desc">Descripción de la actividad <span class="req">*</span></label><textarea id="m-desc" placeholder="Ej: Cambio de sello mecánico y lubricación"></textarea><div class="err"></div></div>
+      <div class="field"><label for="m-resp">Responsable</label><input id="m-resp" type="text"></div>
+      <div class="grid2"><div class="field"><label for="m-horo">Horómetro (h)</label><input id="m-horo" type="number" inputmode="decimal" step="any"></div>
+        <div class="field"><label for="m-tiempo">Tiempo empleado (h)</label><input id="m-tiempo" type="number" inputmode="decimal" step="any"></div></div>
+      <div class="field"><label for="m-rep">Repuestos usados</label><input id="m-rep" type="text"></div>
+      <div class="grid2"><div class="field"><label for="m-dt">Fecha</label><input id="m-dt" type="date"></div>
+        <div class="field"><label for="m-prox">Próximo mantenimiento</label><input id="m-prox" type="date"></div></div>
+      <button class="btn primary" onclick="guardarMant()">Guardar mantenimiento</button>
+    </div>
+  </article>
+
+  <article class="card" id="c-nov">
+    <button class="card-h" onclick="toggleCard('c-nov')"><span class="step opt">C</span><span class="ttl">Novedades</span><span class="chip">Opcional</span><span class="chev"></span></button>
+    <div class="card-b">
+      <div class="field"><label for="n-tipo">Tipo de novedad</label><select id="n-tipo"><option>Falla de equipo</option><option>Mantenimiento</option><option>Operativa</option><option>Parada de planta</option><option>Otra</option></select></div>
+      <div class="field"><label for="n-desc">Descripción <span class="req">*</span></label><textarea id="n-desc" placeholder="Ej: Se dañó la bomba dosificadora #2"></textarea><div class="err"></div></div>
+      <div class="field"><label for="n-dt">Fecha y hora</label><div class="row"><input id="n-dt" type="datetime-local"><button class="mini" type="button" onclick="setNow('n-dt')">Ahora</button></div></div>
+      <div class="field"><label style="display:flex;gap:10px;align-items:center;font-weight:600"><input id="n-wa" type="checkbox" style="width:22px;min-height:22px;flex:none"> Abrir WhatsApp con el mensaje al guardar</label></div>
+      <button class="btn primary" onclick="guardarNovedad()">Guardar novedad</button>
+    </div>
+  </article>
+
+  <article class="card" id="c-evid">
+    <button class="card-h" onclick="toggleCard('c-evid')"><span class="step opt">D</span><span class="ttl">Fotos / evidencias</span><span class="chip">Opcional</span><span class="chev"></span></button>
+    <div class="card-b">
+      <div class="field"><label for="e-files">Fotografías</label><input id="e-files" type="file" accept="image/*" multiple onchange="elegirFotos(this)"></div>
+      <div class="prev" id="e-prev"></div>
+      <div class="field"><label for="e-desc">Descripción</label><input id="e-desc" type="text" placeholder="Ej: Estado del sedimentador antes del lavado"></div>
+      <button class="btn primary" onclick="guardarEvidencia()">Guardar evidencias</button>
+    </div>
+  </article>
+</section>
+
+<!-- ============================ BITÁCORA ============================ -->
+<section id="v-bitacora" class="view">
+  <div id="printHead"><h2>PTAR BELLAVISTA · BITÁCORA MENSUAL DE OPERACIÓN</h2><p id="printSub"></p></div>
+  <div class="card pad noprint">
+    <h3>Planilla bitácora mensual</h3>
+    <div class="tools"><input type="month" id="b-mes" onchange="renderBitacora()"><button class="mini" style="min-height:46px" onclick="mesActual()">Este mes</button></div>
+    <div class="hint">Cada día muestra lo guardado en el celular y en el programa de escritorio. <span style="color:#a8660a;font-weight:800">Franja amarilla</span> = faltan datos obligatorios · <span style="color:var(--green);font-weight:800">verde</span> = día completo.</div>
+  </div>
+  <div class="tw"><table class="bit" id="bitTabla"></table></div>
+  <div class="resumen" id="bitResumen"></div>
+  <div class="noprint">
+    <button class="btn success" onclick="compartirBitacora()">Enviar bitácora (compartir / WhatsApp)</button>
+    <button class="btn ghost" onclick="exportarCSV()">Descargar Excel (CSV)</button>
+    <button class="btn ghost" onclick="imprimirBitacora()">Imprimir / guardar como PDF</button>
+  </div>
+  <div id="printFoot"><div>Operador de turno</div><div>Jefe de planta</div></div>
+</section>
+
+<!-- ============================ SINCRONIZACIÓN ============================ -->
+<section id="v-sync" class="view">
+  <div class="card pad">
+    <h3>Sincronización con el programa de escritorio</h3>
+    <div class="kv"><span>Estado</span><span id="sy-estado">—</span></div>
+    <div class="kv"><span>Pendientes de envío</span><span id="sy-pend">0</span></div>
+    <div class="kv"><span>Última sincronización</span><span id="sy-ultima">Nunca</span></div>
+    <div class="kv"><span>Registros guardados</span><span id="sy-total">0</span></div>
+    <div class="kv"><span>Este dispositivo</span><span id="sy-dev">—</span></div>
+    <button class="btn primary" id="sy-btn" onclick="doSync(true)">Sincronizar ahora</button>
+    <div class="hint" id="sy-msg" style="margin-top:10px"></div>
+  </div>
+  <div class="card pad">
+    <h3>Ajustes</h3>
+    <div class="field" style="margin-top:0"><label for="sy-url">Servidor</label><input id="sy-url" type="url" inputmode="url" placeholder="https://scada-ptar-central.onrender.com"></div>
+    <div class="field"><label for="sy-wa">WhatsApp de destino (con 57)</label><input id="sy-wa" type="tel" inputmode="tel" placeholder="573182651261"></div>
+    <button class="btn ghost sm" onclick="guardarAjustes()">Guardar ajustes</button>
+    <div class="hint">Todo se guarda primero en el celular y funciona sin internet. Cuando hay señal, se envía al servidor y el programa de escritorio lo descarga.</div>
+  </div>
+  <div class="card pad">
+    <h3>Respaldo</h3>
+    <button class="btn ghost sm" onclick="reenviarTodo()">Reenviar todos los registros</button>
+    <button class="btn ghost sm" onclick="respaldoJSON()">Descargar copia de seguridad (JSON)</button>
+  </div>
+</section>
+</main>
+
+<nav class="bottom" id="nav">
+  <button data-v="inicio" class="active" onclick="go('inicio')"><svg viewBox="0 0 24 24"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/><path d="M10 20v-6h4v6"/></svg>Inicio</button>
+  <button data-v="registro" onclick="go('registro')"><svg viewBox="0 0 24 24"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4h6v3H9z"/><path d="M9 14l2 2 4-4"/></svg>Registro<span class="cnt" id="cntReg"></span></button>
+  <button data-v="otros" onclick="go('otros')"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><path d="M16.500 13v7M13 16.500h7"/></svg>Otros</button>
+  <button data-v="bitacora" onclick="go('bitacora')"><svg viewBox="0 0 24 24"><path d="M5 4h11a3 3 0 013 3v13H8a3 3 0 01-3-3z"/><path d="M5 17a3 3 0 013-3h11"/></svg>Bitácora</button>
+  <button data-v="sync" onclick="go('sync')"><svg viewBox="0 0 24 24"><path d="M20 11a8 8 0 00-14-4L4 9"/><path d="M4 4v5h5"/><path d="M4 13a8 8 0 0014 4l2-2"/><path d="M20 20v-5h-5"/></svg>Sync<span class="cnt" id="cntSync"></span></button>
+</nav>
+<div id="toast" role="status" aria-live="polite"></div>
+
+<script>
+/* ============================================================================
+   LÓGICA (sin pantalla): cálculos, validaciones, bitácora y sincronización.
+   Se prueba aparte con Node, por eso no toca el DOM.
+   ============================================================================ */
+const PH_MIN = 6.5, PH_MAX = 8.5;
+const HORAS_MANT = 12000, AVISO_MANT = 500;
+// Tanque real de coagulante: cilíndrico Ø36 cm x 66 cm  ->  1 cm de nivel = 1.0179 L
+const TANQUE = { diametro: 36, alto: 66, factor: 1.0179, capacidad: 67.18 };
+const TABLAS = ["ph_registros", "aforos", "dosificaciones", "mantenimientos",
+                "lavados_unidades", "novedades", "horometros", "actividades"];
+const TABLA_ALIAS = {
+  ph_entrada: "ph_registros", ph_salida: "ph_registros", aforo: "aforos", lavado: "lavados_unidades",
+  novedad: "novedades", dosificacion: "dosificaciones", mantenimiento: "mantenimientos",
+  horometro: "horometros", actividad: "actividades", horarios: "actividades", operador: "actividades",
+  evidencias: "novedades"
+};
+
+const pad = n => String(n).padStart(2, "0");
+const r2 = n => Math.round(n * 100) / 100;
+const r4 = n => Math.round(n * 10000) / 10000;
+const f2 = n => (Number.isFinite(n) ? n : 0).toFixed(2);
+const num = v => (v === null || v === undefined || String(v).trim() === "") ? NaN : parseFloat(String(v).replace(",", "."));
+const ymd = d => d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate());
+const hm = d => pad(d.getHours()) + ":" + pad(d.getMinutes());
+const nowLocal = (d = new Date()) => ymd(d) + "T" + hm(d);
+
+function splitDT(v) {                       // "2026-10-10T08:30" -> {fecha, hora}
+  const m = /^(\d{4}-\d{2}-\d{2})T(\d{2}:\d{2})/.exec(v || "");
+  return m ? { fecha: m[1], hora: m[2] } : null;
+}
+function parseDT(v) {
+  const s = splitDT(v);
+  if (!s) return null;
+  const d = new Date(s.fecha + "T" + s.hora + ":00");
+  return isNaN(d.getTime()) ? null : d;
+}
+function nuevoUuid() {
+  if (typeof crypto !== "undefined" && crypto.randomUUID) return crypto.randomUUID();
+  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, c => {
+    const r = Math.random() * 16 | 0; return (c === "x" ? r : (r & 3 | 8)).toString(16);
+  });
+}
+
+/* ---------------------------------------------------------------- cálculos */
+// Aforo volumétrico: 8 L / segundos.  Caudal final = 8 / (promedio de los tiempos).
+function aforoCalc(segs) {
+  const validos = segs.filter(s => Number.isFinite(s) && s > 0);
+  const parciales = segs.map(s => (Number.isFinite(s) && s > 0) ? 8 / s : null);
+  if (!validos.length) return { parciales, n: 0, prom: null, caudal: null };
+  const prom = validos.reduce((a, b) => a + b, 0) / validos.length;
+  return { parciales, n: validos.length, prom, caudal: 8 / prom };
+}
+function phEstado(v) {
+  if (!Number.isFinite(v)) return null;
+  if (v >= PH_MIN && v <= PH_MAX) return "ok";
+  if (v >= PH_MIN - 0.3 && v <= PH_MAX + 0.3) return "warn";
+  return "bad";
+}
+function dosisCalc(ini, fin) {
+  if (!Number.isFinite(ini) || !Number.isFinite(fin)) return null;
+  return {
+    consumo_l: r2(Math.max(0, ini - fin) * TANQUE.factor),
+    saldo_l: r2(Math.max(0, fin) * TANQUE.factor),
+    pct: Math.max(0, Math.min(100, fin / TANQUE.alto * 100)),
+    coherente: ini >= fin
+  };
+}
+function colorGradiente(t) {                // 0 = verde, 0.5 = amarillo, 1 = rojo
+  t = Math.max(0, Math.min(1, t));
+  const mezcla = (a, b, k) => Math.round(a + (b - a) * k);
+  let r, g, b;
+  if (t <= 0.5) { const k = t / 0.5; r = mezcla(0x22, 0xea, k); g = mezcla(0xc5, 0xb3, k); b = mezcla(0x5e, 0x08, k); }
+  else { const k = (t - 0.5) / 0.5; r = mezcla(0xea, 0xef, k); g = mezcla(0xb3, 0x44, k); b = mezcla(0x08, 0x44, k); }
+  return "#" + [r, g, b].map(x => x.toString(16).padStart(2, "0")).join("");
+}
+
+/* ------------------------------------------------------------ validaciones
+   Cada función devuelve una lista de {id, msg}. Lista vacía = se puede guardar. */
+function validaTurno(v) {
+  const e = [];
+  if (!v.nombre || v.nombre.trim().length < 3) e.push({ id: "t-nombre", msg: "Obligatorio: escriba el nombre del operador" });
+  const di = parseDT(v.ingreso), ds = parseDT(v.salida);
+  if (!di) e.push({ id: "t-ingreso", msg: "Obligatorio: fecha y hora de ingreso" });
+  if (!ds) e.push({ id: "t-salida", msg: "Obligatorio: fecha y hora de salida" });
+  if (di && ds && ds <= di) e.push({ id: "t-salida", msg: "La salida debe ser posterior al ingreso" });
+  return e;
+}
+function validaHorometro(v, ultima) {
+  const e = [];
+  const l = num(v.lectura);
+  if (!v.equipo) e.push({ id: "h-equipo", msg: "Obligatorio: elija el equipo" });
+  if (!Number.isFinite(l)) e.push({ id: "h-lectura", msg: "Obligatorio: lectura del horómetro (horas)" });
+  else if (l < 0) e.push({ id: "h-lectura", msg: "La lectura no puede ser negativa" });
+  else if (Number.isFinite(ultima) && l < ultima) e.push({ id: "h-lectura", msg: "No puede ser menor que la última lectura (" + ultima + " h)" });
+  if (!splitDT(v.dt)) e.push({ id: "h-dt", msg: "Obligatorio: fecha y hora de la lectura" });
+  return e;
+}
+function validaAforos(segs, dts) {
+  const e = [];
+  for (let i = 0; i < 3; i++) {
+    const s = num(segs[i]);
+    if (!Number.isFinite(s)) e.push({ id: "a-s" + (i + 1), msg: "Obligatorio: segundos del aforo " + (i + 1) });
+    else if (s <= 0) e.push({ id: "a-s" + (i + 1), msg: "Los segundos deben ser mayores que 0" });
+    if (!splitDT(dts[i])) e.push({ id: "a-dt" + (i + 1), msg: "Obligatorio: fecha y hora del aforo " + (i + 1) });
+  }
+  return e;
+}
+function validaPh(v) {
+  const e = [];
+  const chk = (idV, idD, val, dt, nombre) => {
+    const p = num(val);
+    if (!Number.isFinite(p)) e.push({ id: idV, msg: "Obligatorio: pH de " + nombre });
+    else if (p < 0 || p > 14) e.push({ id: idV, msg: "El pH debe estar entre 0 y 14" });
+    if (!splitDT(dt)) e.push({ id: idD, msg: "Obligatorio: fecha y hora del pH de " + nombre });
+  };
+  chk("ph-in", "ph-in-dt", v.inV, v.inDt, "entrada");
+  chk("ph-out", "ph-out-dt", v.outV, v.outDt, "salida");
+  if (String(v.temp || "").trim() !== "") {
+    const t = num(v.temp);
+    if (!Number.isFinite(t) || t < -5 || t > 60) e.push({ id: "ph-temp", msg: "Temperatura no válida (°C)" });
+  }
+  return e;
+}
+function validaDosis(v) {
+  const e = [];
+  const ini = num(v.ini), fin = num(v.fin);
+  if (!Number.isFinite(ini)) e.push({ id: "d-ini", msg: "Obligatorio: nivel inicial (cm)" });
+  else if (ini < 0 || ini > TANQUE.alto) e.push({ id: "d-ini", msg: "Debe estar entre 0 y " + TANQUE.alto + " cm" });
+  if (!Number.isFinite(fin)) e.push({ id: "d-fin", msg: "Obligatorio: nivel final (cm)" });
+  else if (fin < 0 || fin > TANQUE.alto) e.push({ id: "d-fin", msg: "Debe estar entre 0 y " + TANQUE.alto + " cm" });
+  if (Number.isFinite(ini) && Number.isFinite(fin) && fin > ini) e.push({ id: "d-fin", msg: "El nivel final no puede ser mayor que el inicial" });
+  if (!splitDT(v.dt)) e.push({ id: "d-dt", msg: "Obligatorio: fecha y hora" });
+  return e;
+}
+// Módulos opcionales: solo se exige lo mínimo para que el registro tenga sentido.
+function validaLavado(v) { return v.unidad ? [] : [{ id: "l-unidad", msg: "Elija la unidad lavada" }]; }
+function validaMant(v) {
+  const e = [];
+  if (!v.desc || !v.desc.trim()) e.push({ id: "m-desc", msg: "Escriba la descripción del trabajo" });
+  return e;
+}
+function validaNovedad(v) {
+  const e = [];
+  if (!v.desc || !v.desc.trim()) e.push({ id: "n-desc", msg: "Describa la novedad" });
+  return e;
+}
+
+/* ------------------------------------------------------- registros remotos */
+function mergeRemotos(locales, remotos) {
+  const existentes = new Set(locales.map(r => r.uuid));
+  const nuevos = [];
+  for (const r of remotos) {
+    const uid = String(r.sync_uuid || "").trim();
+    const origen = String(r.tabla || "");
+    const tabla = TABLAS.includes(origen) ? origen : (TABLA_ALIAS[origen] || "");
+    if (!uid || !tabla || existentes.has(uid)) continue;
+    const d = Object.assign({}, (r.datos && typeof r.datos === "object") ? r.datos : {});
+    const fh = String(r.fecha_hora || "");
+    if (!d.fecha) d.fecha = fh.slice(0, 10);
+    if (!d.fecha) continue;
+    if (!d.hora && fh.length >= 16) d.hora = fh.slice(11, 16);
+    if (tabla === "ph_registros" && !d.punto) d.punto = origen === "ph_salida" ? "Salida" : "Entrada";
+    if (!d.operador && r.operador) d.operador = r.operador;
+    existentes.add(uid);
+    nuevos.push({ uuid: uid, tabla, operador: r.operador || d.operador || "", device_id: r.device_id || "",
+                  creado: new Date().toISOString(), estado: "sincronizado", datos: d });
+  }
+  return nuevos;
+}
+
+/* ------------------------------------------------------- bitácora mensual */
+const media = a => a.length ? a.reduce((x, y) => x + y, 0) / a.length : null;
+const esPunto = (r, p) => String(r.datos.punto || "").toLowerCase().startsWith(p);
+
+function buildBitacora(regs, anio, mes, hoyStr) {
+  const dias = new Date(anio, mes, 0).getDate();
+  const filas = [];
+  for (let d = 1; d <= dias; d++) {
+    const f = anio + "-" + pad(mes) + "-" + pad(d);
+    const delDia = t => regs.filter(r => r.tabla === t && r.datos && r.datos.fecha === f);
+    const turnos = delDia("actividades").filter(r => String(r.datos.actividad || "") === "Turno");
+    const horos = delDia("horometros").map(r => num(r.datos.lectura_h)).filter(Number.isFinite);
+    const caudales = delDia("aforos").map(r => num(r.datos.caudal_lps)).filter(Number.isFinite);
+    const phIn = delDia("ph_registros").filter(r => esPunto(r, "entr")).map(r => num(r.datos.ph)).filter(Number.isFinite);
+    const phOut = delDia("ph_registros").filter(r => esPunto(r, "sal")).map(r => num(r.datos.ph)).filter(Number.isFinite);
+    const quim = delDia("dosificaciones").map(r => num(r.datos.consumo_l)).filter(Number.isFinite);
+    const novs = delDia("novedades").filter(r => r.datos.tipo !== "Evidencia");
+    const evids = delDia("novedades").filter(r => r.datos.tipo === "Evidencia");
+    const lavs = delDia("lavados_unidades"), mants = delDia("mantenimientos");
+
+    const turno = turnos[0];
+    const operador = (turno && (turno.datos.responsable || turno.operador)) ||
+      (regs.find(r => r.datos && r.datos.fecha === f && (r.operador || r.datos.operador)) || {}).operador || "";
+    const hhmm = v => { const s = splitDT(v || ""); return s ? s.hora : ""; };
+    const obs = [];
+    novs.forEach(n => obs.push((n.datos.tipo ? n.datos.tipo + ": " : "") + (n.datos.descripcion || "")));
+    lavs.forEach(l => obs.push("Lavado " + (l.datos.unidad || "")));
+    mants.forEach(m => obs.push("Mant. " + (m.datos.equipo || "") + (m.datos.descripcion ? " - " + m.datos.descripcion : "")));
+    if (evids.length) obs.push(evids.length + " evidencia(s) fotográfica(s)");
+
+    const fila = {
+      dia: d, fecha: f, futuro: !!hoyStr && f > hoyStr,
+      operador, ingreso: turno ? hhmm(turno.datos.ingreso_dt) : "", salida: turno ? hhmm(turno.datos.salida_dt) : "",
+      horometro: horos.length ? Math.max(...horos) : null,
+      caudal: caudales.length ? r2(media(caudales)) : null,
+      phIn: phIn.length ? r2(media(phIn)) : null,
+      phOut: phOut.length ? r2(media(phOut)) : null,
+      quimico: quim.length ? r2(quim.reduce((a, b) => a + b, 0)) : null,
+      obs: obs.join(" | "),
+      tieneTurno: !!turno, nNov: novs.length
+    };
+    fila.hayDatos = !!(turno || horos.length || caudales.length || phIn.length || phOut.length || quim.length || obs.length);
+    fila.completo = !!(turno && horos.length && caudales.length && phIn.length && phOut.length);
+    filas.push(fila);
+  }
+  const con = k => filas.map(f => f[k]).filter(v => v !== null);
+  const horoVals = con("horometro");
+  const resumen = {
+    dias, diasConDatos: filas.filter(f => f.hayDatos).length, diasCompletos: filas.filter(f => f.completo).length,
+    caudalProm: media(con("caudal")), phInProm: media(con("phIn")), phOutProm: media(con("phOut")),
+    quimicoTotal: con("quimico").reduce((a, b) => a + b, 0),
+    horoIni: horoVals.length ? Math.min(...horoVals) : null, horoFin: horoVals.length ? Math.max(...horoVals) : null,
+    novedades: filas.reduce((a, f) => a + f.nNov, 0)
+  };
+  resumen.horasOperadas = (resumen.horoIni !== null) ? r2(resumen.horoFin - resumen.horoIni) : null;
+  return { filas, resumen };
+}
+
+function csvBitacora(bit, anio, mes) {
+  const dec = v => v === null || v === undefined ? "" : String(v).replace(".", ",");
+  const q = s => { s = String(s === null || s === undefined ? "" : s); return /[;"\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; };
+  const cab = ["Día", "Fecha", "Operador", "Ingreso", "Salida", "Horómetro (h)", "Caudal (L/s)", "pH entrada", "pH salida", "Coagulante (L)", "Observaciones"];
+  const lin = [["PTAR BELLAVISTA - BITÁCORA MENSUAL " + pad(mes) + "/" + anio], cab];
+  bit.filas.forEach(f => lin.push([f.dia, f.fecha, f.operador, f.ingreso, f.salida, dec(f.horometro),
+    f.caudal === null ? "" : dec(f2(f.caudal)), f.phIn === null ? "" : dec(f2(f.phIn)), f.phOut === null ? "" : dec(f2(f.phOut)),
+    f.quimico === null ? "" : dec(f2(f.quimico)), f.obs]));
+  const r = bit.resumen;
+  lin.push([]);
+  lin.push(["Resumen", "", "", "", "", "Horas operadas: " + dec(r.horasOperadas),
+    "Prom: " + dec(r.caudalProm === null ? "" : f2(r.caudalProm)), "Prom: " + dec(r.phInProm === null ? "" : f2(r.phInProm)),
+    "Prom: " + dec(r.phOutProm === null ? "" : f2(r.phOutProm)), "Total: " + dec(f2(r.quimicoTotal)),
+    "Días completos: " + r.diasCompletos + "/" + r.dias]);
+  return "\ufeff" + lin.map(l => l.map(q).join(";")).join("\r\n");
+}
+
+/* ---------------------------------------------------------- sincronización */
+async function fetchJson(fetchFn, url, opts, ms) {
+  const ctl = (typeof AbortController !== "undefined") ? new AbortController() : null;
+  const t = ctl ? setTimeout(() => ctl.abort(), ms) : null;
+  try {
+    const resp = await fetchFn(url, Object.assign({}, opts || {}, ctl ? { signal: ctl.signal } : {}));
+    if (!resp.ok) throw new Error("El servidor respondió " + resp.status);
+    return await resp.json();
+  } finally { if (t) clearTimeout(t); }
+}
+
+/* ctx = { base, state:{registros, cfg}, fetchFn, getFotos(ids), persist(), wakeMs } */
+async function syncCycle(ctx) {
+  const out = { enviados: 0, recibidos: 0, reinicio: false };
+  const base = String(ctx.base || "").trim().replace(/\/+$/, "");
+  if (!/^https?:\/\//i.test(base)) throw new Error("Dirección del servidor no válida");
+  const st = ctx.state;
+
+  // 1) Salud: además despierta al servidor gratuito, que tarda en arrancar
+  const h = await fetchJson(ctx.fetchFn, base + "/api/health", {}, ctx.wakeMs || 50000);
+  if (h.instancia) {
+    if (st.cfg.instancia && st.cfg.instancia !== h.instancia) {   // la base del servidor se reinició/vació
+      st.registros.forEach(r => { r.estado = "pendiente"; });
+      st.cfg.last_pull_id = 0; out.reinicio = true;
+    }
+    st.cfg.instancia = h.instancia;
+  }
+
+  // 2) Enviar lo pendiente por lotes
+  const pend = st.registros.filter(r => r.estado !== "sincronizado");
+  for (let i = 0; i < pend.length; i += 40) {
+    const lote = pend.slice(i, i + 40);
+    const registros = [];
+    for (const r of lote) {
+      const datos = Object.assign({}, r.datos);
+      if (Array.isArray(datos.fotos_ids) && datos.fotos_ids.length && ctx.getFotos) datos.fotos = await ctx.getFotos(datos.fotos_ids);
+      registros.push({ sync_uuid: r.uuid, tabla: r.tabla, device_id: r.device_id || st.cfg.device_id, operador: r.operador, datos });
+    }
+    const res = await fetchJson(ctx.fetchFn, base + "/api/sync",
+      { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ device_id: st.cfg.device_id, registros }) }, 90000);
+    const ok = new Set(res.confirmados || []);
+    lote.forEach(r => { if (ok.has(r.uuid)) { r.estado = "sincronizado"; out.enviados++; } });
+    if (ctx.persist) ctx.persist();
+  }
+
+  // 3) Traer lo que hicieron otros dispositivos (por ejemplo, el programa de escritorio)
+  const q = st.cfg.last_pull_id > 0 ? "desde_id=" + st.cfg.last_pull_id + "&limit=1000" : "limit=2000";
+  const rem = await fetchJson(ctx.fetchFn, base + "/api/registros?" + q, {}, 60000);
+  const nuevos = mergeRemotos(st.registros, rem.registros || []);
+  nuevos.forEach(n => st.registros.push(n));
+  out.recibidos = nuevos.length;
+  if (typeof rem.ultimo_id === "number" && rem.ultimo_id > 0) st.cfg.last_pull_id = rem.ultimo_id;
+  st.cfg.last_sync = new Date().toISOString();
+  if (ctx.persist) ctx.persist();
+  return out;
+}
+
+if (typeof module !== "undefined") {
+  module.exports = { PH_MIN, PH_MAX, HORAS_MANT, AVISO_MANT, TANQUE, TABLAS, pad, r2, r4, f2, num, ymd, hm, nowLocal, splitDT, parseDT,
+    nuevoUuid, aforoCalc, phEstado, dosisCalc, colorGradiente, validaTurno, validaHorometro, validaAforos, validaPh, validaDosis,
+    validaLavado, validaMant, validaNovedad, mergeRemotos, buildBitacora, csvBitacora, fetchJson, syncCycle };
+}
+
+/* ============================================================================
+   INTERFAZ
+   ============================================================================ */
+const $ = id => document.getElementById(id);
+const LS = { reg: "ptar.registros", cfg: "ptar.cfg", turno: "ptar.turno", draft: "ptar.draft.aforos" };
+const S = { registros: [], cfg: {}, turno: null, sync: { busy: false, error: null }, fotos: [] };
+const esc = s => String(s == null ? "" : s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const AUTO = ["h-dt", "ph-in-dt", "ph-out-dt", "d-dt", "l-dt", "n-dt"];     // fecha/hora que se actualizan solas
+
+/* ------------------------------------------------------------------ datos locales */
+function servidorPorDefecto() {
+  return /^https?:$/.test(location.protocol) ? location.origin : "https://scada-ptar-central.onrender.com";
+}
+function cargar() {
+  try { S.registros = JSON.parse(localStorage.getItem(LS.reg) || "[]"); } catch (e) { S.registros = []; }
+  let cfg = {}; try { cfg = JSON.parse(localStorage.getItem(LS.cfg) || "{}"); } catch (e) { }
+  S.cfg = Object.assign({ device_id: "movil-" + Math.random().toString(36).slice(2, 6), server: servidorPorDefecto(),
+    whatsapp: "573182651261", last_pull_id: 0, instancia: null, last_sync: null, ultimo_operador: "" }, cfg);
+  try { S.turno = JSON.parse(localStorage.getItem(LS.turno) || "null"); } catch (e) { S.turno = null; }
+}
+function persist() {
+  try {
+    localStorage.setItem(LS.reg, JSON.stringify(S.registros));
+    localStorage.setItem(LS.cfg, JSON.stringify(S.cfg));
+    localStorage.setItem(LS.turno, JSON.stringify(S.turno));
+  } catch (e) { toast("No hay espacio para guardar. Sincronice y libere espacio.", "bad"); }
+}
+function addRegistro(tabla, datos, operador) {
+  const r = { uuid: nuevoUuid(), tabla, operador, device_id: S.cfg.device_id, creado: new Date().toISOString(), estado: "pendiente", datos };
+  S.registros.push(r); persist(); return r;
+}
+const hoy = () => ymd(new Date());
+const reg = t => S.registros.filter(r => r.tabla === t && r.datos && r.datos.fecha);
+const delDia = (t, f) => reg(t).filter(r => r.datos.fecha === f);
+const clave = r => (r.datos.fecha || "") + " " + (r.datos.hora || "");
+function ultimoReg(t, filtro) {
+  const rs = reg(t).filter(filtro || (() => true)).sort((a, b) => clave(a) < clave(b) ? -1 : clave(a) > clave(b) ? 1 : 0);
+  return rs.length ? rs[rs.length - 1] : null;
+}
+const pendientes = () => S.registros.filter(r => r.estado !== "sincronizado").length;
+
+/* ------------------------------------------------------------------ avisos y navegación */
+let toastT;
+function toast(msg, tipo) {
+  const t = $("toast"); t.textContent = msg; t.className = "show " + (tipo || "");
+  clearTimeout(toastT); toastT = setTimeout(() => { t.className = ""; }, 3400);
+}
+function go(v) {
+  document.querySelectorAll(".view").forEach(x => x.classList.toggle("active", x.id === "v-" + v));
+  document.querySelectorAll("#nav button").forEach(b => b.classList.toggle("active", b.dataset.v === v));
+  window.scrollTo(0, 0);
+  if (v === "inicio") renderInicio();
+  if (v === "bitacora") renderBitacora();
+  if (v === "sync") renderSync();
+  if (v === "registro" || v === "otros") { refrescarAuto(); actualizarEstados(); }
+}
+function toggleCard(id) {
+  const c = $(id), abrir = !c.classList.contains("open");
+  if (abrir) c.closest(".view").querySelectorAll(".card.open").forEach(x => x.classList.remove("open"));
+  c.classList.toggle("open", abrir);
+  if (abrir) { refrescarAuto(); setTimeout(() => c.scrollIntoView({ behavior: "smooth", block: "start" }), 60); }
+}
+function irA(id) {
+  const c = $(id), vista = c.closest(".view");
+  go(vista.id.slice(2));
+  vista.querySelectorAll(".card.open").forEach(x => x.classList.remove("open"));
+  c.classList.add("open"); refrescarAuto();
+  setTimeout(() => c.scrollIntoView({ behavior: "smooth", block: "start" }), 80);
+}
+function setNow(id) { const el = $(id); el.value = el.type === "date" ? ymd(new Date()) : nowLocal(); el.dataset.auto = "0"; }
+function refrescarAuto() { AUTO.forEach(id => { const el = $(id); if (el && el.dataset.auto !== "0") el.value = nowLocal(); }); }
+function resetAuto(ids) { ids.forEach(id => { const el = $(id); el.dataset.auto = "1"; el.value = nowLocal(); }); }
+
+/* ------------------------------------------------------------------ validación en pantalla */
+function aplicar(cardId, errs) {
+  $(cardId).querySelectorAll(".field.invalid").forEach(f => f.classList.remove("invalid"));
+  errs.forEach(e => {
+    const el = $(e.id); if (!el) return;
+    const f = el.closest(".field");
+    if (f) { f.classList.add("invalid"); const m = f.querySelector(".err"); if (m) m.textContent = e.msg; }
+  });
+  if (errs.length) {
+    const el = $(errs[0].id);
+    if (el) { el.scrollIntoView({ behavior: "smooth", block: "center" }); setTimeout(() => { try { el.focus({ preventScroll: true }); } catch (_) { } }, 350); }
+  }
+  return errs.length === 0;
+}
+document.addEventListener("input", e => {
+  const f = e.target.closest && e.target.closest(".field.invalid"); if (f) f.classList.remove("invalid");
+  if (AUTO.includes(e.target.id)) e.target.dataset.auto = "0";
+});
+
+/* ------------------------------------------------------------------ turno */
+function turnoVigente() {
+  const t = S.turno; if (!t) return null;
+  const fin = parseDT(t.salida); if (!fin) return null;
+  return new Date() <= new Date(fin.getTime() + 2 * 3600 * 1000) ? t : null;     // 2 h de margen tras la salida
+}
+const leerTurno = () => ({ nombre: $("t-nombre").value, ingreso: $("t-ingreso").value, salida: $("t-salida").value });
+function requireTurno() {
+  const t = turnoVigente();
+  if (t) return t.operador;
+  toast("Primero guarde el turno: operador, ingreso y salida", "bad");
+  irA("c-turno"); aplicar("c-turno", validaTurno(leerTurno()));
+  return null;
+}
+function autoSalida(forzar) {
+  if (!forzar && $("t-salida").value) return;
+  const d = parseDT($("t-ingreso").value) || new Date();
+  $("t-salida").value = nowLocal(new Date(d.getTime() + 8 * 3600 * 1000));
+}
+function guardarTurno() {
+  const v = leerTurno();
+  if (!aplicar("c-turno", validaTurno(v))) { toast("Faltan datos obligatorios", "bad"); return; }
+  const di = splitDT(v.ingreso), ds = splitDT(v.salida), nombre = v.nombre.trim();
+  const misma = S.turno && S.turno.fecha === di.fecha && S.turno.operador === nombre;
+  const uuid = misma ? S.turno.uuid : nuevoUuid();
+  const datos = { fecha: di.fecha, actividad: "Turno", estado: parseDT(v.salida) <= new Date() ? "Cerrado" : "Abierto", responsable: nombre,
+    observaciones: "Ingreso " + di.fecha + " " + di.hora + " · Salida " + ds.fecha + " " + ds.hora, ingreso_dt: v.ingreso, salida_dt: v.salida };
+  const ex = S.registros.find(r => r.uuid === uuid);
+  if (ex) { ex.datos = datos; ex.operador = nombre; ex.estado = "pendiente"; }
+  else S.registros.push({ uuid, tabla: "actividades", operador: nombre, device_id: S.cfg.device_id, creado: new Date().toISOString(), estado: "pendiente", datos });
+  S.turno = { uuid, operador: nombre, ingreso: v.ingreso, salida: v.salida, fecha: di.fecha };
+  S.cfg.ultimo_operador = nombre;
+  persist(); despuesDeGuardar("Turno guardado · " + nombre); abrirSiguiente();
+}
+
+/* ------------------------------------------------------------------ horómetro */
+function ultimaLectura(equipo) {
+  const r = ultimoReg("horometros", x => (x.datos.equipo || "Bomba") === equipo);
+  const l = r ? num(r.datos.lectura_h) : NaN;
+  return Number.isFinite(l) ? l : null;
+}
+function infoHorometro() {
+  const ult = ultimaLectura($("h-equipo").value), l = num($("h-lectura").value), ref = Number.isFinite(l) ? l : ult;
+  let h = ult !== null ? "Última lectura registrada: <b>" + ult + " h</b>" : "Todavía no hay lecturas de este equipo.";
+  if (ref !== null) {
+    const rest = HORAS_MANT - ref, pct = Math.min(100, ref / HORAS_MANT * 100);
+    h += "<br>Mantenimiento cada " + HORAS_MANT + " h: " + (rest > 0 ? "faltan <b>" + rest.toFixed(1) + " h</b>" : '<b style="color:#c53030">VENCIDO</b>') +
+      '<div class="bar" style="margin-top:6px"><i style="width:' + pct + "%;background:" + (rest <= 0 ? "#c53030" : rest <= AVISO_MANT ? "#e0a21b" : "#2b6cb0") + '"></i></div>';
+  }
+  $("h-info").innerHTML = h;
+}
+function guardarHorometro() {
+  const op = requireTurno(); if (!op) return;
+  const v = { equipo: $("h-equipo").value, lectura: $("h-lectura").value, dt: $("h-dt").value };
+  if (!aplicar("c-horo", validaHorometro(v, ultimaLectura(v.equipo)))) { toast("Faltan datos obligatorios", "bad"); return; }
+  const s = splitDT(v.dt);
+  addRegistro("horometros", { fecha: s.fecha, hora: s.hora, equipo: v.equipo, lectura_h: num(v.lectura), operador: op, observaciones: $("h-obs").value.trim() }, op);
+  $("h-lectura").value = ""; $("h-obs").value = ""; resetAuto(["h-dt"]); infoHorometro();
+  despuesDeGuardar("Horómetro guardado"); abrirSiguiente();
+}
+
+/* ------------------------------------------------------------------ aforos */
+function draftAforos() {
+  const d = {}; ["a-s1", "a-s2", "a-s3", "a-dt1", "a-dt2", "a-dt3"].forEach(id => { d[id] = $(id).value; });
+  try { localStorage.setItem(LS.draft, JSON.stringify(d)); } catch (e) { }
+}
+function restaurarDraftAforos() {
+  try { const d = JSON.parse(localStorage.getItem(LS.draft) || "null"); if (d) Object.keys(d).forEach(id => { if ($(id)) $(id).value = d[id]; }); } catch (e) { }
+}
+function calcAforos(i) {
+  if (i) { const dt = $("a-dt" + i); if (!dt.value && $("a-s" + i).value) dt.value = nowLocal(); }   // pone la hora al escribir los segundos
+  const segs = [1, 2, 3].map(k => num($("a-s" + k).value)), c = aforoCalc(segs), est = $("r-estado");
+  [1, 2, 3].forEach((k, idx) => { $("a-q" + k).textContent = c.parciales[idx] === null ? "— L/s" : f2(c.parciales[idx]) + " L/s"; });
+  if (c.n === 0) {
+    $("r-prom").textContent = "Tiempo promedio: — s"; $("r-calc").textContent = "Cálculo: 8 L ÷ — s = — L/s";
+    $("r-caudal").textContent = "— L/s"; est.textContent = "Faltan 3 aforos"; est.className = "st";
+  } else {
+    $("r-prom").textContent = "Tiempo promedio: " + f2(c.prom) + " s " + (c.n === 3 ? "(" + segs.map(f2).join(" + ") + ") ÷ 3" : "(" + c.n + "/3)");
+    $("r-calc").textContent = "Cálculo: 8 L ÷ " + f2(c.prom) + " s = " + f2(c.caudal) + " L/s";
+    $("r-caudal").textContent = f2(c.caudal) + " L/s" + (c.n < 3 ? " (parcial)" : "");
+    if (c.n === 3) { est.textContent = "3 aforos completados · LISTO PARA GUARDAR"; est.className = "st ok"; }
+    else { est.textContent = "Faltan " + (3 - c.n) + " aforo(s)"; est.className = "st"; }
+  }
+  $("r-mini-q").textContent = c.n === 0 ? "— L/s" : f2(c.caudal) + " L/s" + (c.n < 3 ? " (parcial)" : "");
+  $("r-mini-s").textContent = c.n + " de 3 aforos";
+  draftAforos();
+}
+function guardarAforos() {
+  const op = requireTurno(); if (!op) return;
+  const segsT = [1, 2, 3].map(k => $("a-s" + k).value), dts = [1, 2, 3].map(k => $("a-dt" + k).value);
+  if (!aplicar("c-aforo", validaAforos(segsT, dts))) { toast("Faltan datos obligatorios: complete los 3 aforos", "bad"); return; }
+  const segs = segsT.map(num), c = aforoCalc(segs), s0 = splitDT(dts[0]);
+  const detalle = segs.map((s, i) => "A" + (i + 1) + " " + splitDT(dts[i]).hora + " " + f2(s) + " s (" + f2(8 / s) + " L/s)").join(" · ");
+  addRegistro("aforos", { fecha: s0.fecha, hora: s0.hora, volumen_l: 8, tiempo_s: r4(c.prom), caudal_lps: r4(c.caudal),
+    operador: op, observaciones: "Aforo volumétrico de 3 mediciones · " + detalle }, op);
+  [1, 2, 3].forEach(k => { $("a-s" + k).value = ""; $("a-dt" + k).value = ""; });
+  try { localStorage.removeItem(LS.draft); } catch (e) { }
+  calcAforos(0); despuesDeGuardar("Aforo guardado · " + f2(c.caudal) + " L/s"); abrirSiguiente();
+}
+
+/* ------------------------------------------------------------------ pH */
+function phVisual(w) {
+  const v = num($("ph-" + w).value), chip = $("ph-" + w + "-chip"), mk = $("sc-" + w).querySelector(".mk"), e = phEstado(v);
+  if (e === null || v < 0 || v > 14) { chip.className = "chip"; chip.textContent = "Sin valor"; mk.style.display = "none"; return; }
+  chip.className = "chip " + e;
+  chip.textContent = (e === "ok" ? "✓ Dentro de norma" : e === "warn" ? "⚠ Cerca del límite" : "✕ Fuera de norma") + " · " + f2(v);
+  mk.style.display = "block"; mk.style.left = (v / 14 * 100) + "%";
+}
+function guardarPh() {
+  const op = requireTurno(); if (!op) return;
+  const v = { inV: $("ph-in").value, inDt: $("ph-in-dt").value, outV: $("ph-out").value, outDt: $("ph-out-dt").value, temp: $("ph-temp").value };
+  if (!aplicar("c-ph", validaPh(v))) { toast("Faltan datos obligatorios", "bad"); return; }
+  const t = num(v.temp), temp = Number.isFinite(t) ? t : null;
+  let fuera = 0;
+  [["Entrada", v.inV, v.inDt], ["Salida", v.outV, v.outDt]].forEach(([punto, val, dt]) => {
+    const p = num(val), s = splitDT(dt), est = phEstado(p); if (est !== "ok") fuera++;
+    addRegistro("ph_registros", { fecha: s.fecha, hora: s.hora, punto, ph: p, temperatura: temp, operador: op, observaciones: est !== "ok" ? "Fuera de norma" : "" }, op);
+  });
+  ["ph-in", "ph-out", "ph-temp"].forEach(id => { $(id).value = ""; }); phVisual("in"); phVisual("out"); resetAuto(["ph-in-dt", "ph-out-dt"]);
+  despuesDeGuardar(fuera ? "pH guardado · ⚠ hay un valor fuera de norma, registre una novedad si corresponde" : "pH guardado", fuera ? "bad" : "ok");
+  abrirSiguiente();
+}
+
+/* ------------------------------------------------------------------ dosificación */
+function calcDosis() {
+  const ini = num($("d-ini").value), fin = num($("d-fin").value), c = dosisCalc(ini, fin), box = $("d-res");
+  if (!c) { box.innerHTML = "Escriba los niveles para calcular el consumo."; return; }
+  let h = "Consumo: <b>" + f2(c.consumo_l) + " L</b> (" + f2(Math.max(0, ini - fin)) + " cm × 1.0179)<br>Saldo en el tanque: <b>" + f2(c.saldo_l) + " L</b> · " + c.pct.toFixed(0) + " %" +
+    '<div class="bar" style="margin-top:6px"><i style="width:' + c.pct + "%;background:" + (c.pct < 15 ? "#c53030" : c.pct < 30 ? "#e0a21b" : "#2b6cb0") + '"></i></div>';
+  if (!c.coherente) h += '<div style="color:#c53030;font-weight:700;margin-top:6px">El nivel final no puede ser mayor que el inicial</div>';
+  else if (c.pct < 15) h += '<div style="color:#c53030;font-weight:700;margin-top:6px">⚠ Nivel bajo: recargar el tanque</div>';
+  box.innerHTML = h;
+}
+function prefillDosis() {
+  const u = ultimoReg("dosificaciones");
+  if (u && !$("d-ini").value && Number.isFinite(num(u.datos.nivel_final_cm))) $("d-ini").value = u.datos.nivel_final_cm;
+  calcDosis();
+}
+function guardarDosis() {
+  const op = requireTurno(); if (!op) return;
+  const v = { ini: $("d-ini").value, fin: $("d-fin").value, dt: $("d-dt").value };
+  if (!aplicar("c-dosis", validaDosis(v))) { toast("Revise los datos marcados", "bad"); return; }
+  const c = dosisCalc(num(v.ini), num(v.fin)), s = splitDT(v.dt);
+  addRegistro("dosificaciones", { fecha: s.fecha, hora: s.hora, tanque: "Tanque coagulante Ø36×66 cm", producto: $("d-prod").value,
+    nivel_inicial_cm: num(v.ini), nivel_final_cm: num(v.fin), consumo_l: c.consumo_l, operador: op, observaciones: $("d-obs").value.trim() }, op);
+  $("d-ini").value = ""; $("d-fin").value = ""; $("d-obs").value = ""; resetAuto(["d-dt"]); prefillDosis();
+  despuesDeGuardar("Dosificación guardada · " + f2(c.consumo_l) + " L");
+}
+
+/* ------------------------------------------------------------------ opcionales */
+function guardarLavado() {
+  const op = requireTurno(); if (!op) return;
+  if (!aplicar("c-lavado", validaLavado({ unidad: $("l-unidad").value }))) return;
+  const s = splitDT($("l-dt").value) || { fecha: hoy() };
+  addRegistro("lavados_unidades", { fecha: s.fecha, unidad: $("l-unidad").value, estado: $("l-estado").value, tiempo: $("l-tiempo").value.trim(),
+    operador: op, notas: $("l-notas").value.trim() }, op);
+  $("l-tiempo").value = ""; $("l-notas").value = ""; resetAuto(["l-dt"]); despuesDeGuardar("Lavado registrado");
+}
+function guardarMant() {
+  const op = requireTurno(); if (!op) return;
+  if (!aplicar("c-mant", validaMant({ desc: $("m-desc").value }))) { toast("Escriba la descripción del trabajo", "bad"); return; }
+  const h = num($("m-horo").value), t = num($("m-tiempo").value);
+  addRegistro("mantenimientos", { fecha: $("m-dt").value || hoy(), equipo: $("m-equipo").value, tipo: $("m-tipo").value, prioridad: $("m-prio").value,
+    descripcion: $("m-desc").value.trim(), responsable: $("m-resp").value.trim() || op, horometro: Number.isFinite(h) ? h : null,
+    repuestos: $("m-rep").value.trim(), tiempo_horas: Number.isFinite(t) ? t : null, proximo: $("m-prox").value || "", estado: $("m-estado").value }, op);
+  ["m-desc", "m-horo", "m-tiempo", "m-rep", "m-prox"].forEach(id => { $(id).value = ""; });
+  despuesDeGuardar("Mantenimiento registrado");
+}
+function guardarNovedad() {
+  const op = requireTurno(); if (!op) return;
+  if (!aplicar("c-nov", validaNovedad({ desc: $("n-desc").value }))) { toast("Describa la novedad", "bad"); return; }
+  const s = splitDT($("n-dt").value) || { fecha: hoy(), hora: hm(new Date()) };
+  const d = { fecha: s.fecha, hora: s.hora, tipo: $("n-tipo").value, descripcion: $("n-desc").value.trim(), enviado_a: "", estado: "Registrada", operador: op };
+  if ($("n-wa").checked) {
+    d.enviado_a = S.cfg.whatsapp; d.estado = "Enviado";
+    const msg = "*PTAR BELLAVISTA - REPORTE DE NOVEDAD* 🚨\n📅 Fecha: " + d.fecha + "\n⏰ Hora: " + d.hora + "\n👷 Operador: " + op + "\n🔧 Tipo: " + d.tipo + "\n📝 Novedad: " + d.descripcion + "\n_Reporte desde SCADA móvil_";
+    window.open("https://wa.me/" + S.cfg.whatsapp + "?text=" + encodeURIComponent(msg), "_blank");
+  }
+  addRegistro("novedades", d, op);
+  $("n-desc").value = ""; $("n-wa").checked = false; resetAuto(["n-dt"]); despuesDeGuardar("Novedad registrada");
+}
+
+/* ------------------------------------------------------------------ fotos (IndexedDB) */
+function idb() {
+  return new Promise((res, rej) => { const q = indexedDB.open("ptar-fotos", 1); q.onupgradeneeded = () => q.result.createObjectStore("f"); q.onsuccess = () => res(q.result); q.onerror = () => rej(q.error); });
+}
+async function fotoPut(id, data) {
+  const db = await idb();
+  return new Promise((res, rej) => { const t = db.transaction("f", "readwrite"); t.objectStore("f").put(data, id); t.oncomplete = () => res(); t.onerror = () => rej(t.error); });
+}
+async function fotoGet(id) {
+  const db = await idb();
+  return new Promise(res => { const q = db.transaction("f").objectStore("f").get(id); q.onsuccess = () => res(q.result || null); q.onerror = () => res(null); });
+}
+async function fotosGet(ids) { return (await Promise.all(ids.map(fotoGet))).filter(Boolean); }
+function comprimir(file) {
+  return new Promise((res, rej) => {
+    const fr = new FileReader();
+    fr.onload = () => {
+      const img = new Image();
+      img.onload = () => {
+        const k = Math.min(1, 900 / Math.max(img.width, img.height)), c = document.createElement("canvas");
+        c.width = Math.round(img.width * k); c.height = Math.round(img.height * k);
+        c.getContext("2d").drawImage(img, 0, 0, c.width, c.height); res(c.toDataURL("image/jpeg", 0.65));
+      };
+      img.onerror = rej; img.src = fr.result;
+    };
+    fr.onerror = rej; fr.readAsDataURL(file);
+  });
+}
+async function elegirFotos(inp) {
+  for (const f of Array.from(inp.files || [])) {
+    try { S.fotos.push({ id: nuevoUuid(), url: await comprimir(f) }); } catch (e) { toast("No se pudo leer una de las fotos", "bad"); }
+  }
+  inp.value = ""; pintarFotos();
+}
+function pintarFotos() {
+  $("e-prev").innerHTML = S.fotos.map((f, i) => '<div><img alt="foto" src="' + f.url + '"><button onclick="quitarFoto(' + i + ')" aria-label="Quitar">×</button></div>').join("");
+}
+function quitarFoto(i) { S.fotos.splice(i, 1); pintarFotos(); }
+async function guardarEvidencia() {
+  const op = requireTurno(); if (!op) return;
+  if (!S.fotos.length) { toast("Agregue al menos una foto", "bad"); return; }
+  const ids = [];
+  try { for (const f of S.fotos) { await fotoPut(f.id, f.url); ids.push(f.id); } }
+  catch (e) { toast("No se pudieron guardar las fotos en el teléfono", "bad"); return; }
+  const n = ids.length, d = $("e-desc").value.trim() || "Evidencia fotográfica";
+  addRegistro("novedades", { fecha: hoy(), hora: hm(new Date()), tipo: "Evidencia", descripcion: d + " (" + n + " foto" + (n > 1 ? "s" : "") + ")",
+    enviado_a: "", estado: "Registrada", operador: op, fotos_ids: ids }, op);
+  S.fotos = []; pintarFotos(); $("e-desc").value = ""; despuesDeGuardar("Evidencias guardadas");
+}
+
+/* ------------------------------------------------------------------ estado general */
+function estadoHoy() {
+  const f = hoy();
+  const turno = !!turnoVigente() || delDia("actividades", f).some(r => r.datos.actividad === "Turno");
+  const horo = delDia("horometros", f).length > 0, aforo = delDia("aforos", f).length > 0;
+  const phIn = delDia("ph_registros", f).some(r => esPunto(r, "entr")), phOut = delDia("ph_registros", f).some(r => esPunto(r, "sal"));
+  return { turno, horo, aforo, phIn, phOut, ph: phIn && phOut, dosis: delDia("dosificaciones", f).length > 0 };
+}
+function chipEstado(id, ok, textoOk, textoNo, claseNo) {
+  const c = $(id); c.className = "chip " + (ok ? "ok" : claseNo || "warn"); c.textContent = ok ? textoOk : textoNo;
+}
+function actualizarEstados() {
+  const e = estadoHoy();
+  chipEstado("st-turno", !!turnoVigente(), "✓ Activo", "Falta");
+  chipEstado("st-horo", e.horo, "✓ Hoy", "Falta");
+  chipEstado("st-aforo", e.aforo, "✓ Hoy", "Falta");
+  chipEstado("st-ph", e.ph, "✓ Hoy", e.phIn || e.phOut ? "Incompleto" : "Falta");
+  chipEstado("st-dosis", e.dosis, "✓ Hoy", "Recomendado", "info");
+  const faltan = [!turnoVigente(), !e.horo, !e.aforo, !e.ph].filter(Boolean).length, c = $("cntReg");
+  c.style.display = faltan ? "grid" : "none"; c.textContent = faltan;
+}
+function abrirSiguiente() {
+  const e = estadoHoy();
+  const orden = [["c-turno", !!turnoVigente()], ["c-horo", e.horo], ["c-aforo", e.aforo], ["c-ph", e.ph]];
+  const pend = orden.find(o => !o[1]);
+  const vista = $("v-registro");
+  vista.querySelectorAll(".card.open").forEach(x => x.classList.remove("open"));
+  if (pend) { $(pend[0]).classList.add("open"); setTimeout(() => $(pend[0]).scrollIntoView({ behavior: "smooth", block: "start" }), 120); }
+  else if (!$("toast").classList.contains("bad")) { toast("✓ Registro obligatorio del día completo", "ok"); }   // no pisa un aviso de error
+}
+function despuesDeGuardar(msg, tipo) { refrescarTodo(); toast(msg, tipo || "ok"); programarSync(900); }
+function refrescarTodo() {
+  pintarBadge(); renderTurnoBar(); actualizarEstados();
+  const v = document.querySelector(".view.active").id;
+  if (v === "v-inicio") renderInicio();
+  if (v === "v-bitacora") renderBitacora();
+  if (v === "v-sync") renderSync();
+}
+function renderTurnoBar() {
+  const b = $("turnoBar"), t = turnoVigente();
+  if (t) {
+    const fin = splitDT(t.salida);
+    b.className = "turnobar"; $("turnoTxt").innerHTML = "👷 Turno de <b>" + esc(t.operador) + "</b> · hasta " + fin.hora; b.querySelector(".go").textContent = "Ver ›";
+  } else {
+    b.className = "turnobar warn"; $("turnoTxt").innerHTML = "⚠ <b>Sin turno activo</b> · guarde operador, ingreso y salida"; b.querySelector(".go").textContent = "Iniciar ›";
+  }
+}
+
+/* ------------------------------------------------------------------ gráficas SVG (sin librerías: funcionan sin internet) */
+const SIN_DATOS = '<div class="vacio">Aún no hay datos para mostrar</div>';
+function svgBars(items, fmt) {
+  const vals = items.filter(i => i.v !== null).map(i => i.v);
+  if (!vals.length) return SIN_DATOS;
+  const W = 340, H = 170, L = 34, R = 8, T = 18, B = 26, iw = W - L - R, ih = H - T - B;
+  const max = (Math.max(...vals) * 1.18) || 1, n = items.length, slot = iw / n, bw = slot * 0.58;
+  let g = "";
+  for (let k = 0; k <= 4; k++) {
+    const y = T + ih - ih * k / 4;
+    g += '<line x1="' + L + '" x2="' + (W - R) + '" y1="' + y + '" y2="' + y + '" stroke="#e5eaf1"/><text x="' + (L - 5) + '" y="' + (y + 3) + '" text-anchor="end" font-size="9" fill="#64748b">' + (max * k / 4).toFixed(max < 2 ? 2 : 1) + "</text>";
+  }
+  items.forEach((it, i) => {
+    const x = L + slot * i + (slot - bw) / 2;
+    if (it.v === null) g += '<rect x="' + x + '" y="' + (T + ih - 3) + '" width="' + bw + '" height="3" rx="1.5" fill="#d1d5db"/>';
+    else {
+      const h = Math.max(3, ih * it.v / max);
+      g += '<rect x="' + x + '" y="' + (T + ih - h) + '" width="' + bw + '" height="' + h + '" rx="4" fill="' + it.c + '"/><text x="' + (x + bw / 2) + '" y="' + (T + ih - h - 4) + '" text-anchor="middle" font-size="9.5" font-weight="700" fill="#26364d">' + fmt(it.v) + "</text>";
+    }
+    g += '<text x="' + (x + bw / 2) + '" y="' + (H - 8) + '" text-anchor="middle" font-size="9.5" fill="#64748b">' + it.l + "</text>";
+  });
+  return '<svg viewBox="0 0 ' + W + " " + H + '" role="img">' + g + "</svg>";
+}
+function svgLines(labels, series, ymin, ymax) {
+  const todos = series.flatMap(s => s.vals).filter(v => v !== null);
+  if (!todos.length) return SIN_DATOS;
+  const lo = Math.min(ymin, Math.floor(Math.min(...todos) - 0.3)), hi = Math.max(ymax, Math.ceil(Math.max(...todos) + 0.3));
+  const W = 340, H = 180, L = 30, R = 12, T = 12, B = 26, iw = W - L - R, ih = H - T - B, n = labels.length;
+  const X = i => L + iw * (n === 1 ? 0.5 : i / (n - 1)), Y = v => T + ih - (v - lo) / (hi - lo) * ih;
+  let g = '<rect x="' + L + '" y="' + Y(PH_MAX) + '" width="' + iw + '" height="' + (Y(PH_MIN) - Y(PH_MAX)) + '" fill="#bbf7d0" fill-opacity=".6"/>';
+  for (let v = Math.ceil(lo); v <= hi; v++) g += '<line x1="' + L + '" x2="' + (W - R) + '" y1="' + Y(v) + '" y2="' + Y(v) + '" stroke="#e5eaf1"/><text x="' + (L - 5) + '" y="' + (Y(v) + 3) + '" text-anchor="end" font-size="9" fill="#64748b">' + v + "</text>";
+  series.forEach(s => {
+    let seg = []; const flush = () => { if (seg.length > 1) g += '<polyline points="' + seg.join(" ") + '" fill="none" stroke="' + s.c + '" stroke-width="2.4" stroke-linejoin="round"/>'; seg = []; };
+    s.vals.forEach((v, i) => { if (v === null) { flush(); return; } seg.push(X(i).toFixed(1) + "," + Y(v).toFixed(1)); }); flush();
+    s.vals.forEach((v, i) => { if (v !== null) g += '<circle cx="' + X(i) + '" cy="' + Y(v) + '" r="3.8" fill="' + (phEstado(v) === "bad" ? "#c53030" : s.c) + '" stroke="#fff" stroke-width="1.3"/>'; });
+  });
+  labels.forEach((l, i) => { g += '<text x="' + X(i) + '" y="' + (H - 8) + '" text-anchor="middle" font-size="9.5" fill="#64748b">' + l + "</text>"; });
+  return '<svg viewBox="0 0 ' + W + " " + H + '" role="img">' + g + "</svg>";
+}
+function ultimos7() {
+  const out = [], d = new Date();
+  for (let i = 6; i >= 0; i--) { const x = new Date(d.getFullYear(), d.getMonth(), d.getDate() - i); out.push({ f: ymd(x), l: pad(x.getDate()) + "/" + pad(x.getMonth() + 1) }); }
+  return out;
+}
+
+/* ------------------------------------------------------------------ INICIO */
+function tituloRegistro(r) {
+  const d = r.datos, p = Number.isFinite;
+  switch (r.tabla) {
+    case "aforos": return "Aforo " + f2(num(d.caudal_lps)) + " L/s";
+    case "ph_registros": return "pH " + (d.punto || "") + " " + (p(num(d.ph)) ? f2(num(d.ph)) : "—");
+    case "horometros": return "Horómetro " + (d.equipo || "") + " " + (d.lectura_h != null ? d.lectura_h : "—") + " h";
+    case "dosificaciones": return "Dosificación " + f2(num(d.consumo_l)) + " L " + (d.producto || "");
+    case "novedades": return (d.tipo || "Novedad") + ": " + (d.descripcion || "");
+    case "lavados_unidades": return "Lavado " + (d.unidad || "");
+    case "mantenimientos": return "Mant. " + (d.equipo || "") + ": " + (d.descripcion || "");
+    case "actividades": return (d.actividad || "Actividad") + " " + (d.responsable || r.operador || "");
+    default: return r.tabla;
+  }
+}
+function renderInicio() {
+  const e = estadoHoy(), f = hoy(), t = turnoVigente();
+  const dHoy = new Date().toLocaleDateString("es-CO", { weekday: "long", day: "numeric", month: "long" });
+  const ult = (tab, filtro) => { const rs = delDia(tab, f).filter(filtro || (() => true)).sort((a, b) => clave(a) < clave(b) ? -1 : 1); return rs.length ? rs[rs.length - 1] : null; };
+  const rH = ult("horometros"), rA = ult("aforos"), rIn = ult("ph_registros", r => esPunto(r, "entr")), rOut = ult("ph_registros", r => esPunto(r, "sal"));
+  const items = [
+    ["Turno", !!t || e.turno, "c-turno", t ? esc(t.operador) + " · " + splitDT(t.ingreso).hora + " a " + splitDT(t.salida).hora : "Guarde operador, ingreso y salida"],
+    ["Horómetro", e.horo, "c-horo", rH ? rH.datos.lectura_h + " h · " + (rH.datos.hora || "") : "Falta la lectura de hoy"],
+    ["Aforos (3 mediciones)", e.aforo, "c-aforo", rA ? f2(num(rA.datos.caudal_lps)) + " L/s · " + (rA.datos.hora || "") : "Faltan los aforos de hoy"],
+    ["pH entrada y salida", e.ph, "c-ph", "Entrada " + (rIn ? f2(num(rIn.datos.ph)) : "falta") + " · Salida " + (rOut ? f2(num(rOut.datos.ph)) : "falta")]
+  ];
+  const hechos = items.filter(i => i[1]).length;
+  $("hoyCard").innerHTML = '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><h3 style="margin:0;text-transform:capitalize">' + dHoy + '</h3><span class="chip ' + (hechos === 4 ? "ok" : "warn") + '">' + hechos + " de 4 obligatorios</span></div>" +
+    '<div class="bar" style="margin:10px 0 4px"><i style="width:' + (hechos * 25) + "%;background:" + (hechos === 4 ? "#2f855a" : "#2b6cb0") + '"></i></div>' +
+    items.map(i => '<div class="check"><span class="dot ' + (i[1] ? "ok" : "no") + '">' + (i[1] ? "✓" : "!") + "</span><div><b>" + i[0] + "</b><small>" + i[3] + '</small></div><button class="mini sm" onclick="irA(\'' + i[2] + "')\">" + (i[1] ? "Ver" : "Llenar") + "</button></div>").join("") +
+    '<div class="check"><span class="dot ' + (e.dosis ? "ok" : "") + '">' + (e.dosis ? "✓" : "·") + '</span><div><b>Dosificación <span class="opt-tag">(recomendado)</span></b><small>' + (e.dosis ? "Registrada hoy" : "Sin registro hoy") + '</small></div><button class="mini sm" onclick="irA(\'c-dosis\')">' + (e.dosis ? "Ver" : "Llenar") + "</button></div>";
+
+  // KPIs
+  const kp = [];
+  const cd = delDia("aforos", f).map(r => num(r.datos.caudal_lps)).filter(Number.isFinite);
+  const ua = ultimoReg("aforos");
+  kp.push(cd.length ? { c: "info", l: "Caudal hoy", v: f2(media(cd)) + " L/s", s: cd.length + " aforo(s)" } :
+    { c: "", l: "Caudal", v: ua ? f2(num(ua.datos.caudal_lps)) + " L/s" : "—", s: ua ? "último: " + ua.datos.fecha.slice(8) + "/" + ua.datos.fecha.slice(5, 7) : "Sin aforos" });
+  [["entr", "pH entrada"], ["sal", "pH salida"]].forEach(([p, lab]) => {
+    const r = ultimoReg("ph_registros", x => esPunto(x, p)), v = r ? num(r.datos.ph) : NaN, es = phEstado(v);
+    kp.push({ c: es || "", l: lab, v: Number.isFinite(v) ? f2(v) : "—", s: r ? (es === "ok" ? "Dentro de norma" : es === "warn" ? "Cerca del límite" : "Fuera de norma") + " · " + r.datos.fecha.slice(8) + "/" + r.datos.fecha.slice(5, 7) : "Sin lecturas" });
+  });
+  const rh = ultimoReg("horometros", x => (x.datos.equipo || "Bomba") === "Bomba") || ultimoReg("horometros"), lh = rh ? num(rh.datos.lectura_h) : NaN;
+  if (Number.isFinite(lh)) { const rest = HORAS_MANT - lh; kp.push({ c: rest <= 0 ? "bad" : rest <= AVISO_MANT ? "warn" : "ok", l: "Horómetro", v: lh + " h", s: rest > 0 ? "Faltan " + rest.toFixed(0) + " h p/ mantenimiento" : "Mantenimiento vencido" }); }
+  else kp.push({ c: "", l: "Horómetro", v: "—", s: "Sin lecturas" });
+  const rd = ultimoReg("dosificaciones"), fin = rd ? num(rd.datos.nivel_final_cm) : NaN;
+  if (Number.isFinite(fin)) { const c = dosisCalc(fin, fin); kp.push({ c: c.pct < 15 ? "bad" : c.pct < 30 ? "warn" : "ok", l: "Tanque químico", v: c.pct.toFixed(0) + " %", s: f2(c.saldo_l) + " L · " + fin + " cm" }); }
+  else kp.push({ c: "", l: "Tanque químico", v: "—", s: "Sin dosificaciones" });
+  const pe = pendientes();
+  kp.push({ c: pe ? "warn" : "ok", l: "Sincronización", v: pe ? pe + " pend." : "Al día", s: S.cfg.last_sync ? "última: " + new Date(S.cfg.last_sync).toLocaleTimeString("es-CO", { hour: "2-digit", minute: "2-digit" }) : "Aún no sincroniza" });
+  $("kpis").innerHTML = kp.map(k => '<div class="kpi ' + k.c + '"><small>' + k.l + "</small><b>" + k.v + "</b><span>" + k.s + "</span></div>").join("");
+
+  // alertas
+  const al = [];
+  const phHoy = delDia("ph_registros", f).filter(r => phEstado(num(r.datos.ph)) === "bad");
+  if (phHoy.length) al.push(["bad", "⚠ pH fuera de norma hoy (" + phHoy.map(r => (r.datos.punto || "") + " " + f2(num(r.datos.ph))).join(", ") + "). Revise y registre una novedad."]);
+  if (Number.isFinite(fin) && dosisCalc(fin, fin).pct < 15) al.push(["bad", "⚠ Tanque de químico casi vacío: recargar."]);
+  if (Number.isFinite(lh) && HORAS_MANT - lh <= AVISO_MANT) al.push(["warn", "🔧 El horómetro está cerca del mantenimiento programado (" + HORAS_MANT + " h)."]);
+  if ((t || e.turno) && hechos < 4) {
+    const falta = items.filter(i => !i[1]).map(i => i[0]);
+    al.push(["info", "Pendiente hoy: " + falta.join(", ") + "."]);
+  }
+  if (pe && !navigator.onLine) al.push(["warn", "Sin internet: " + pe + " registro(s) se enviarán al volver la señal."]);
+  $("alertas").innerHTML = al.map(a => '<div class="alerta ' + a[0] + '">' + a[1] + "</div>").join("");
+
+  // gráficas
+  const dias = ultimos7();
+  const qd = dias.map(d => { const v = delDia("aforos", d.f).map(r => num(r.datos.caudal_lps)).filter(Number.isFinite); return v.length ? media(v) : null; });
+  const qv = qd.filter(v => v !== null), qmin = Math.min(...qv), qmax = Math.max(...qv);
+  $("chCaudal").innerHTML = svgBars(dias.map((d, i) => ({ l: d.l, v: qd[i], c: qd[i] === null ? "#d1d5db" : colorGradiente(qmax === qmin ? 0.5 : (qd[i] - qmin) / (qmax - qmin)) })), v => f2(v));
+  const phd = p => dias.map(d => { const v = delDia("ph_registros", d.f).filter(r => esPunto(r, p)).map(r => num(r.datos.ph)).filter(Number.isFinite); return v.length ? media(v) : null; });
+  $("chPh").innerHTML = svgLines(dias.map(d => d.l), [{ c: "#2b6cb0", vals: phd("entr") }, { c: "#7c3aed", vals: phd("sal") }], 5, 10);
+  const qq = dias.map(d => { const v = delDia("dosificaciones", d.f).map(r => num(r.datos.consumo_l)).filter(Number.isFinite); return v.length ? v.reduce((a, b) => a + b, 0) : null; });
+  $("chQuim").innerHTML = svgBars(dias.map((d, i) => ({ l: d.l, v: qq[i], c: "#2b6cb0" })), v => f2(v));
+
+  // actividad reciente
+  const rec = S.registros.filter(r => r.datos && r.datos.fecha).sort((a, b) => clave(a) < clave(b) ? 1 : clave(a) > clave(b) ? -1 : 0).slice(0, 8);
+  $("recientes").innerHTML = rec.length ? rec.map(r => '<div class="rec"><span class="s ' + (r.estado === "sincronizado" ? "ok" : "") + '"></span><div>' + esc(tituloRegistro(r)) +
+    "<small>" + r.datos.fecha.slice(8) + "/" + r.datos.fecha.slice(5, 7) + " " + (r.datos.hora || "") + " · " + esc(r.operador || r.datos.operador || "") + "</small></div></div>").join("") : '<div class="vacio" style="color:#566579">Aún no hay registros.</div>';
+}
+
+/* ------------------------------------------------------------------ BITÁCORA */
+function mesActual() { const d = new Date(); $("b-mes").value = d.getFullYear() + "-" + pad(d.getMonth() + 1); renderBitacora(); }
+function mesSel() {
+  const m = /^(\d{4})-(\d{2})$/.exec($("b-mes").value || ""), d = new Date();
+  return m ? { y: +m[1], m: +m[2] } : { y: d.getFullYear(), m: d.getMonth() + 1 };
+}
+const nombreMes = (y, m) => new Date(y, m - 1, 1).toLocaleDateString("es-CO", { month: "long", year: "numeric" });
+function renderBitacora() {
+  if (!$("b-mes").value) { const d = new Date(); $("b-mes").value = d.getFullYear() + "-" + pad(d.getMonth() + 1); }
+  const { y, m } = mesSel(), bit = buildBitacora(S.registros, y, m, hoy());
+  const c = v => v === null ? "—" : f2(v);
+  let h = "<thead><tr><th>Día</th><th>Operador</th><th>Ingreso</th><th>Salida</th><th>Horóm. (h)</th><th>Caudal (L/s)</th><th>pH ent.</th><th>pH sal.</th><th>Coag. (L)</th><th>Observaciones</th></tr></thead><tbody>";
+  bit.filas.forEach(f => {
+    const cls = f.futuro ? "futuro" : !f.hayDatos ? "vacio" : f.completo ? "ok" : "falta";
+    const bad = v => v !== null && phEstado(v) === "bad" ? "bad" : "";
+    h += '<tr class="' + cls + '"><td>' + f.dia + '</td><td class="l">' + esc(f.operador || "—") + "</td><td>" + (f.ingreso || "—") + "</td><td>" + (f.salida || "—") + "</td><td>" + (f.horometro === null ? "—" : f.horometro) +
+      "</td><td>" + c(f.caudal) + '</td><td class="' + bad(f.phIn) + '">' + c(f.phIn) + '</td><td class="' + bad(f.phOut) + '">' + c(f.phOut) + "</td><td>" + c(f.quimico) +
+      '</td><td class="o" title="' + esc(f.obs) + '"><span class="scr">' + esc(f.obs.length > 90 ? f.obs.slice(0, 88) + "…" : f.obs) + '</span><span class="prt">' + esc(f.obs) + "</span></td></tr>";
+  });
+  $("bitTabla").innerHTML = h + "</tbody>";
+  const r = bit.resumen;
+  $("bitResumen").innerHTML = [
+    ["Días completos", r.diasCompletos + " / " + r.dias], ["Caudal promedio", r.caudalProm === null ? "—" : f2(r.caudalProm) + " L/s"],
+    ["pH entrada prom.", r.phInProm === null ? "—" : f2(r.phInProm)], ["pH salida prom.", r.phOutProm === null ? "—" : f2(r.phOutProm)],
+    ["Coagulante total", f2(r.quimicoTotal) + " L"], ["Horas operadas", r.horasOperadas === null ? "—" : r.horasOperadas + " h"], ["Novedades", String(r.novedades)]
+  ].map(x => "<div><small>" + x[0] + "</small><b>" + x[1] + "</b></div>").join("");
+  const ops = Array.from(new Set(bit.filas.map(f => f.operador).filter(Boolean)));
+  $("printSub").textContent = nombreMes(y, m).toUpperCase() + " · Operadores: " + (ops.join(", ") || "—") + " · Generado: " + new Date().toLocaleDateString("es-CO");
+  S.ultimaBit = { bit, y, m };
+  const hoyD = new Date();
+  if (y === hoyD.getFullYear() && m === hoyD.getMonth() + 1) {       // lleva la tabla al día de hoy
+    const fila = $("bitTabla").querySelectorAll("tbody tr")[hoyD.getDate() - 1], tw = $("bitTabla").parentElement;
+    if (fila) tw.scrollTop = Math.max(0, fila.offsetTop - 80);
+  } else $("bitTabla").parentElement.scrollTop = 0;
+}
+function descargar(contenido, nombre, tipo) {
+  const url = URL.createObjectURL(new Blob([contenido], { type: tipo })), a = document.createElement("a");
+  a.href = url; a.download = nombre; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 4000);
+}
+function bitActual() { renderBitacora(); return S.ultimaBit; }
+function exportarCSV() {
+  const { bit, y, m } = bitActual();
+  descargar(csvBitacora(bit, y, m), "bitacora_PTAR_Bellavista_" + y + "-" + pad(m) + ".csv", "text/csv;charset=utf-8"); toast("Archivo descargado", "ok");
+}
+function imprimirBitacora() { go("bitacora"); setTimeout(() => window.print(), 250); }
+async function compartirBitacora() {
+  const { bit, y, m } = bitActual(), r = bit.resumen, csv = csvBitacora(bit, y, m), nombre = "bitacora_PTAR_Bellavista_" + y + "-" + pad(m) + ".csv";
+  const texto = "*PTAR BELLAVISTA - BITÁCORA " + nombreMes(y, m).toUpperCase() + "*\nDías completos: " + r.diasCompletos + "/" + r.dias +
+    "\nCaudal promedio: " + (r.caudalProm === null ? "—" : f2(r.caudalProm) + " L/s") + "\npH entrada: " + (r.phInProm === null ? "—" : f2(r.phInProm)) +
+    "\npH salida: " + (r.phOutProm === null ? "—" : f2(r.phOutProm)) + "\nCoagulante: " + f2(r.quimicoTotal) + " L\nHoras operadas: " + (r.horasOperadas === null ? "—" : r.horasOperadas) +
+    "\nNovedades: " + r.novedades;
+  try {
+    const file = new File([csv], nombre, { type: "text/csv" });
+    if (navigator.canShare && navigator.canShare({ files: [file] })) { await navigator.share({ files: [file], title: "Bitácora PTAR Bellavista", text: texto }); return; }
+  } catch (e) { if (e && e.name === "AbortError") return; }
+  descargar(csv, nombre, "text/csv;charset=utf-8");
+  window.open("https://wa.me/" + S.cfg.whatsapp + "?text=" + encodeURIComponent(texto), "_blank");
+  toast("Se descargó el archivo: adjúntelo en WhatsApp", "ok");
+}
+
+/* ------------------------------------------------------------------ SINCRONIZACIÓN */
+function pintarBadge() {
+  const b = $("syncBadge"), p = pendientes(); let cls = "pend", txt = "Sin sincronizar";
+  if (S.sync.busy) { cls = "busy"; txt = "Sincronizando…"; }
+  else if (S.sync.error) { cls = "off"; txt = p ? p + " pendiente" + (p > 1 ? "s" : "") + " · sin conexión" : "Sin conexión"; }
+  else if (p > 0) { cls = "pend"; txt = p + " pendiente" + (p > 1 ? "s" : ""); }
+  else if (S.cfg.last_sync) { cls = "ok"; txt = "Sincronizado"; }
+  b.className = "badge " + cls; $("syncTxt").textContent = txt;
+  const c = $("cntSync"); c.style.display = p ? "grid" : "none"; c.textContent = p;
+}
+function renderSync() {
+  const p = pendientes();
+  $("sy-estado").textContent = S.sync.busy ? "Sincronizando…" : S.sync.error ? "Sin conexión" : S.cfg.last_sync ? "Conectado" : "Sin sincronizar";
+  $("sy-pend").textContent = p; $("sy-total").textContent = S.registros.length; $("sy-dev").textContent = S.cfg.device_id;
+  $("sy-ultima").textContent = S.cfg.last_sync ? new Date(S.cfg.last_sync).toLocaleString("es-CO") : "Nunca";
+  $("sy-btn").disabled = S.sync.busy; $("sy-btn").textContent = S.sync.busy ? "Sincronizando…" : "Sincronizar ahora";
+  if (document.activeElement !== $("sy-url")) $("sy-url").value = S.cfg.server;
+  if (document.activeElement !== $("sy-wa")) $("sy-wa").value = S.cfg.whatsapp;
+}
+let syncT = null;
+function programarSync(ms) { clearTimeout(syncT); syncT = setTimeout(() => doSync(false), ms || 800); }
+async function doSync(manual) {
+  if (S.sync.busy) return;
+  const msg = $("sy-msg");
+  if (!navigator.onLine) { S.sync.error = "Sin internet"; pintarBadge(); renderSync(); msg.textContent = "Sin internet. Los registros quedan guardados y se enviarán al volver la señal."; if (manual) toast("Sin internet", "bad"); return; }
+  S.sync.busy = true; S.sync.error = null; pintarBadge(); renderSync(); msg.textContent = manual ? "Conectando con el servidor… la primera vez puede tardar hasta 1 minuto si estaba dormido." : "";
+  try {
+    const r = await syncCycle({ base: S.cfg.server, state: S, fetchFn: (u, o) => fetch(u, o), persist, getFotos: fotosGet });
+    msg.textContent = "Listo · enviados: " + r.enviados + " · recibidos del escritorio: " + r.recibidos + (r.reinicio ? " · el servidor se había reiniciado y se reenvió todo" : "");
+    if (manual) toast("Sincronizado: " + r.enviados + " enviados, " + r.recibidos + " recibidos", "ok");
+  } catch (e) {
+    S.sync.error = e.message || "error";
+    msg.textContent = (e.name === "AbortError" ? "El servidor tardó demasiado en responder. " : "No se pudo conectar: " + (e.message || "") + ". ") + "Si el servidor estaba dormido, espere un minuto y reintente. Sus datos están seguros en este teléfono.";
+    if (manual) toast("No se pudo sincronizar", "bad");
+  } finally { S.sync.busy = false; refrescarTodo(); }
+}
+function guardarAjustes() {
+  const url = $("sy-url").value.trim().replace(/\/+$/, ""), wa = $("sy-wa").value.replace(/\D/g, "");
+  if (!/^https?:\/\/.+/i.test(url)) { toast("La dirección del servidor debe empezar por http:// o https://", "bad"); return; }
+  const cambio = url !== S.cfg.server;
+  S.cfg.server = url; if (wa) S.cfg.whatsapp = wa;
+  if (cambio) {
+    S.cfg.last_pull_id = 0; S.cfg.instancia = null;
+    if (confirm("Cambió el servidor. ¿Reenviar todos los registros al nuevo servidor?")) S.registros.forEach(r => { r.estado = "pendiente"; });
+  }
+  persist(); refrescarTodo(); toast("Ajustes guardados", "ok"); programarSync(500);
+}
+function reenviarTodo() {
+  if (!confirm("Se volverán a enviar todos los registros al servidor (no se duplican). ¿Continuar?")) return;
+  S.registros.forEach(r => { r.estado = "pendiente"; }); persist(); doSync(true);
+}
+function respaldoJSON() {
+  descargar(JSON.stringify({ exportado: new Date().toISOString(), cfg: S.cfg, registros: S.registros }, null, 1), "respaldo_ptar_" + hoy() + ".json", "application/json");
+  toast("Copia de seguridad descargada", "ok");
+}
+
+/* ------------------------------------------------------------------ arranque */
+function init() {
+  cargar();
+  const t = turnoVigente();
+  if (t) { $("t-nombre").value = t.operador; $("t-ingreso").value = t.ingreso; $("t-salida").value = t.salida; }
+  else { $("t-nombre").value = S.cfg.ultimo_operador || ""; $("t-ingreso").value = nowLocal(); autoSalida(true); }
+  AUTO.forEach(id => { $(id).dataset.auto = "1"; }); refrescarAuto();
+  $("m-dt").value = ymd(new Date()); $("m-resp").value = "";
+  $("h-equipo").addEventListener("change", infoHorometro);
+  restaurarDraftAforos(); calcAforos(0); infoHorometro(); prefillDosis(); phVisual("in"); phVisual("out");
+  mesActual(); refrescarTodo(); renderInicio();
+  const e = estadoHoy();
+  if (!turnoVigente() || !(e.horo && e.aforo && e.ph)) {
+    // la primera vez, o si falta algo obligatorio, la pestaña Registro abre la tarjeta que corresponde
+    const orden = [["c-turno", !!turnoVigente()], ["c-horo", e.horo], ["c-aforo", e.aforo], ["c-ph", e.ph]], pend = orden.find(o => !o[1]);
+    if (pend) { $("v-registro").querySelectorAll(".card.open").forEach(x => x.classList.remove("open")); $(pend[0]).classList.add("open"); }
+  }
+  window.addEventListener("online", () => doSync(false));
+  window.addEventListener("offline", () => { S.sync.error = "Sin internet"; pintarBadge(); });
+  document.addEventListener("visibilitychange", () => { if (!document.hidden) { refrescarTodo(); programarSync(1200); } });
+  setInterval(() => { if (!document.hidden) { refrescarTodo(); doSync(false); } }, 90000);
+  programarSync(1500);
+  if ("serviceWorker" in navigator && /^https?:$/.test(location.protocol)) navigator.serviceWorker.register("sw.js").catch(() => { });
+}
+init();
+
+</script>
+</body>
+</html>

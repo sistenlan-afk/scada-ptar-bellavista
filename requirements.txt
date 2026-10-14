@@ -1,0 +1,4 @@
+Flask>=3.0
+gunicorn>=22.0
+# Solo si usas una base PostgreSQL (variable DATABASE_URL), quita el '#' de la siguiente línea:
+# psycopg2-binary>=2.9.10
